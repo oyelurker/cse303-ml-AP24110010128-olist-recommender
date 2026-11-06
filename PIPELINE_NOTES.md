@@ -554,6 +554,133 @@ Executed all eighteen code cells in order and saved their outputs. Validated sou
 
 **Commit status** — Pending user review and commit.
 
+## Complete topic Exploratory data analysis
+
+**Notebook location** — Section 4, subsections 4.1 through 4.9.
+
+**Purpose** — Understand the prepared data and collect evidence for feature engineering, prediction targets, recommendation methods, and evaluation.
+
+### Cohort definitions and row units
+
+The status and monthly coverage views use all 99,441 source orders. Behavioral analyses use 96,478 delivered orders with item records, containing 110,197 item rows and 93,358 distinct customers. This is a retrospective descriptive cohort. Eventual delivery status requires a separate availability check in future historical prediction tasks.
+
+Merchandise value sums item prices once per order and excludes freight. Review comparisons use the earliest eligible answered review from cleaning and record the smaller cohort with usable delivery dates. Repeated purchases are counted using stable customer identity and distinct orders.
+
+### Plot-by-plot findings
+
+
+#### Order status and scope
+
+The delivered cohort contains 96,478 of 99,441 source orders. Smaller status groups remain relevant when choosing a later prediction-time cohort.
+
+#### Monthly activity and observation boundaries
+
+The snapshot contains 6,512 source orders in August 2018, then 16 in September and 4 in October. The latter two months contain no delivered orders in this cohort. Treat the sparse tail as a coverage concern when choosing the modeling interval, rather than interpreting it as an established collapse in demand.
+
+#### Spending and freight
+
+Median merchandise value is BRL 86.57, while the 99th percentile is BRL 990.00. The broad range supports evaluating a log transform or robust preprocessing later. The scatter uses at most 5,000 orders with random seed 42 for readability, while statistics use the full cohort.
+
+#### Customer activity and repeat intervals
+
+There are 93,358 customers and 2,801 observed repeat buyers, or 3.00 percent. Among observed repeat buyers, the median first-to-second interval is 28.98 days. Different history lengths make the follow-up analysis necessary before using a repeat label.
+
+#### Product demand and sparse interactions
+
+The cohort has 99,785 distinct customer-product pairs and 32,216 products. Interaction sparsity is 99.99668 percent, and 59.52 percent of products have just one observed buyer. Compare collaborative methods with popularity and content-based fallbacks, and report the eligible recommendation cohort.
+
+#### Geographic concentration
+
+SP accounts for 41.98 percent of delivered orders in the cohort. Compare later error rates together with subgroup sample sizes so a dominant region does not hide weak performance elsewhere.
+
+#### Reviews and delivery experience
+
+The comparison includes 95,821 reviewed orders with usable delivery timing. Scores 1 to 3 occur in 73.20 percent of late cases and 17.32 percent of on-time cases. This is a strong descriptive association. Confounding, review selection, and review timing prevent a causal conclusion. Review scores describe the order experience and require care before use as product-preference labels.
+
+#### Numeric correlations
+
+Delivery duration and the first review score have a negative Pearson correlation of approximately -0.33 in this cohort. Merchandise value and freight correlate at approximately 0.41. Evaluate skew, temporal availability, and missingness before turning an association into a feature choice.
+
+#### Candidate repeat-purchase windows
+
+The provisional 90-day cohort contains 75,320 customers with 1,714 observed repeaters, or 2.28 percent. A constant non-repeat classification would have arithmetic accuracy of 97.72 percent in this cohort, showing why accuracy alone is insufficient. The final target still needs a verified coverage boundary and a prediction-date definition.
+
+### Follow-up cohort measurements
+
+| Window in days | Eligible customers | Repeat customers | Repeat percent |
+|---|---:|---:|---:|
+| 30 | 86,772 | 1,373 | 1.58 |
+| 60 | 81,203 | 1,584 | 1.95 |
+| 90 | 75,320 | 1,714 | 2.28 |
+
+
+Eligibility denominators differ between windows. Each includes customers whose first purchase plus the stated horizon falls on or before the provisional delivered-purchase coverage end. Percentages reflect horizon and cohort composition. Same-day distinct orders count as repeats. This is target-feasibility analysis. The final model cohort and prediction-date convention remain to be established.
+
+### Code and method reference
+
+| Code or method | What it does and why it is used |
+|---|---|
+| `import numpy as np` | Imports numeric array operations used for plot bins, labels, and conditions. |
+| `import matplotlib.pyplot as plt` | Imports plotting functions. |
+| `%matplotlib inline` | Enables embedded figures in a notebook environment. |
+| `plt.rcParams.update(...)` | Sets shared fonts, resolution, and visual formatting for consistent figures. |
+| `.loc[condition].copy()` | Creates an independent analysis cohort using explicit eligibility rules. |
+| `.value_counts()` | Counts statuses, scores, or category occurrences. |
+| `.groupby(...).size()` | Counts records at the specified group grain. |
+| `.dt.to_period("M")` | Groups purchase timestamps by calendar month. |
+| `pd.period_range(...)` | Creates a complete monthly index across the observed range. |
+| `.reindex(..., fill_value=0)` | Includes months or score levels with no observations. |
+| `.describe(percentiles=...)` | Reports counts, location, spread, and tail percentiles. |
+| `np.geomspace(...)` | Creates logarithmically spaced histogram bins over the full positive range. |
+| `.sample(..., random_state=42)` | Selects a deterministic plotting sample without changing the full-cohort calculations. |
+| `.agg(...)` | Defines distinct order counts, spending sums, and purchase dates per customer. |
+| `.ge(2)` | Flags customers with at least two observed delivered orders. |
+| `.cumcount()` | Numbers each customer's sorted orders from zero, allowing selection of the second one. |
+| `.set_index(...)` | Aligns second-purchase timestamps with the customer-level summary. |
+| `.dt.total_seconds().div(86400)` | Expresses timestamp differences in fractional days. |
+| `.drop_duplicates()` | Counts each observed customer-product pair once for binary interactions. |
+| `1 - pairs / (users * products)` | Calculates interaction sparsity from counts without creating a dense matrix. |
+| `.cumsum()` | Calculates cumulative demand share after ranking products by observed buyers. |
+| `.head(10)` | Selects leading categories or states for readable displays. |
+| `.dt.normalize()` | Compares delivery and promised dates at the calendar-day level. |
+| `np.where(...)` | Creates readable delivery-timing groups from a boolean condition. |
+| `.le(3)` | Flags review scores from 1 to 3 for the stated descriptive comparison. |
+| `.corr(method="pearson")` | Measures linear pairwise associations among numeric order fields. |
+| `pd.Timedelta(days=...)` | Constructs candidate future follow-up windows. |
+| `first_purchase + horizon <= coverage_end` | Excludes customers without a full candidate observation window. |
+| `second_purchase <= first_purchase + horizon` | Identifies a repeat event within the candidate window. |
+| `plt.subplots(...)` | Creates a figure and its axes, using constrained layout to preserve labels. |
+| `.bar(), .barh(), .hist(), .plot(), .scatter()` | Visualizes counts, distributions, time trends, and paired measurements. |
+| `.set_xscale("log") / .set_yscale("log")` | Displays a broad positive range without hiding small groups. |
+| `"symlog"` | Supports a logarithmic-like axis while retaining zero freight values. |
+| `.bar_label(...)` | Adds measured counts, percentages, or cohort sizes to bars. |
+| `.imshow(..., vmin=-1, vmax=1)` | Draws correlations on their fixed mathematical range. |
+| `plt.show()` | Embeds the current figure as a notebook output. |
+
+### Decisions supported by the evidence
+
+- Compare recommendation methods against popularity and use content metadata or popularity fallbacks for limited histories.
+- Report ranking evaluation eligibility and catalog coverage because extreme sparsity restricts who and what can be tested.
+- Plan imbalance-sensitive retention metrics and compare with simple baselines. A high raw accuracy can result from the majority class alone.
+- Verify the modeling coverage end before constructing historical labels and chronological partitions.
+- Evaluate skew-aware numeric preprocessing after the split. Preserve outliers until a task-specific rule has evidence.
+- Include review and delivery features only when their underlying events would be available at the prediction date.
+- Treat delivery-score differences and correlations as associations. This EDA does not identify a causal effect of delivery or marketing outreach.
+
+### Reproducibility and verification
+
+Created a local .venv environment and requirements.txt for pandas, NumPy, plotting, notebook kernels, and notebook schema validation. Ignore rules cover the local environment and future untracked raw downloads. All nine current raw CSVs are already tracked in Git, so the rule does not untrack them. Repository data tracking can be handled separately from this EDA contribution.
+
+Executed all 29 code cells in order using in-process IPython and validated the saved notebook with nbformat. The separate Jupyter-kernel launch stalled, so verification used the in-process execution route. All nine figure outputs are embedded in the notebook and were visually inspected for readable labels, complete plots, units, cohort labels, and scales.
+
+The source data and earlier preparation validations ran again before EDA. No model training or fitted preprocessing is part of this topic.
+
+**Topic commit message** — `feat: complete Olist exploratory analysis and document findings`.
+
+**Files in the same contribution** — `olist_pipeline.ipynb`, `PIPELINE_NOTES.md`, `README.md`, `requirements.txt`, and `.gitignore`.
+
+**Commit status** — Pending user review and commit.
+
 ## Next notebook topic
 
-Perform EDA using the prepared tables. Develop plots, descriptive statistics, customer and product analysis, and interpretation together with the reference notes, then review them as one complete topic.
+Define historical customer snapshots, feature formulas, repeat-purchase labels, recommendation interactions, and chronological train, validation, and test partitions. Develop that topic with its reference notes as one contribution.

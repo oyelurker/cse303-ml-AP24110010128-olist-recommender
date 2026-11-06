@@ -10,11 +10,26 @@ The project corresponds to catalog topic 9.2, Tier A E-commerce Recommendation.
 
 ## Current status
 
-Data inspection and the data cleaning and preparation topic are complete. The notebook prepares timestamps, review summaries, a geographic lookup, category labels, and validated order and item analytical tables. It preserves 99,441 source orders and 112,650 source item records, with item, freight, and payment totals reconciled independently. EDA is the next topic, followed by feature engineering, model development, and the application. The application framework and chatbot technology remain to be selected.
+Data inspection, cleaning, and EDA are complete. The notebook includes executed preparation checks, nine embedded EDA figures, descriptive summaries, and interpretation. Behavioral EDA uses 96,478 delivered orders with item records, representing 93,358 customers. Feature engineering, target definitions, and chronological evaluation partitions are next, followed by model development and the application. The application framework and chatbot technology remain to be selected.
+
+The EDA finds a 3.00 percent observed repeat-buyer share and 99.99668 percent customer-product interaction sparsity in the stated delivered cohort. In the provisional 90-day follow-up cohort, 1,714 of 75,320 eligible customers repeat within the window. These are descriptive feasibility findings. Cohort coverage and prediction timing will be finalized before modeling.
 
 Open [the project notebook](olist_pipeline.ipynb) in VS Code, select a Python Jupyter kernel with pandas installed, and run the cells from top to bottom with the repository root as the working directory. The initial section includes saved outputs from execution against the local CSVs.
 
 ## Planned workflow
+
+### Notebook environment
+
+Create an isolated environment and install the notebook dependencies from the repository root.
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+In VS Code, open `olist_pipeline.ipynb`, choose **Select Kernel**, and select the Python interpreter inside `.venv`. Run the notebook from top to bottom. Plot outputs are embedded in the saved notebook. Dependencies and the local environment are separate from the downloaded data.
+
+### Development sequence
 
 1. Inspect the dataset files, schema, identifiers, and time coverage.
 2. Clean the data and validate joins at the appropriate customer, order, and item levels.
@@ -87,7 +102,7 @@ Get-ChildItem -LiteralPath .\data\raw -Filter *.csv | Select-Object Name
 
 The count should be `9`, and the filenames should match the expected layout. This checks file presence. Schema, completeness, and data quality checks will follow in the notebook.
 
-Raw CSV files are excluded through `.gitignore`. Each collaborator can download their own copy using these instructions. Record the dataset version and download date during acquisition, and follow the licence stated on the Kaggle dataset page.
+The `data/raw/` ignore rule excludes newly untracked downloads. The nine current CSV files are already tracked in this repository, so adding the rule does not remove them from Git. Each collaborator can download their own copy using these instructions. Record the dataset version and download date during acquisition, and follow the licence stated on the Kaggle dataset page.
 
 ## Planned analysis and models
 

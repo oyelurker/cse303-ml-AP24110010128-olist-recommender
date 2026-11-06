@@ -1,3 +1,9 @@
 # academic documents
 /SOURCE FILES
 
+# Local notebook environment and downloaded data
+/.venv/
+/data/raw/
+__pycache__/
+.ipynb_checkpoints/
+
