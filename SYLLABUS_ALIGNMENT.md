@@ -14,7 +14,7 @@ This is the working course-aligned scope and learning path. It distinguishes wha
 - The kickoff guide and project catalog add capstone expectations, including a comparative algorithm ladder and working deployment.
 - The Week 10 starter is a reference for recommender methods and understanding checks. Its content includes additions beyond the explicit theory list.
 - The public Kaggle notebook supplies implementation examples. Methods appearing there require separate syllabus and project justification.
-- The original comparison reviewed `PROJECT_PLAN.md`, the Gemini project notes, and 43 executed notebook code cells. The Unit II implementation has since extended the notebook to 51 executed cells.
+- The original comparison reviewed `PROJECT_PLAN.md`, the Gemini project notes, and 43 executed notebook code cells. The Unit II and Unit III implementations have since extended the notebook to 64 executed cells.
 
 An algorithm being covered by the syllabus makes it suitable to study and use when it fits the task. It does not mean every lecture topic must become a separate application feature. The model comparisons and small learning demonstrations can live in the notebook, while the application uses the selected models.
 
@@ -44,10 +44,10 @@ Logistic Regression is not explicitly named in the supplied theory or lab topic 
 | Decision trees | Unit II | Interpretable retention classifier | Implemented in Section 7 | Keep. Explain splits, depth, impurity, and overfitting |
 | ID3 | Unit II, Lab 6 | A small learning example accompanying the tree comparison | Implemented in Section 7 | Explain entropy and information gain, with a genuinely identified ID3 example |
 | Feature selection | Unit II | Examine usefulness and redundancy of predictors | Preliminary EDA only | Keep a simple training-only feature-analysis exercise |
-| Content-based recommendation | Unit II | Recommend products using available item attributes and customer history | Planned | Core project method. Explain item vectors and similarity |
-| Collaborative filtering | Unit II | Recommend from customer-product purchase patterns | Planned | Core project method. Start with item-based similarity |
-| Naive Bayes | Unit III, Lab 9 | A retention comparison with stated assumptions | Planned | Keep a justified variant. Explain conditional independence and feature assumptions |
-| SVM | Unit III, Lab 10 | A retention classifier comparison | Planned | Keep a simple configuration. Explain margin, C, scaling, and the kernel used |
+| Content-based recommendation | Unit II | Recommend products using available item attributes and customer history | Implemented in Section 8 | Core project method. Explain item vectors and similarity |
+| Collaborative filtering | Unit II | Recommend from customer-product purchase patterns | Implemented in Section 8 | Core project method. Start with item-based similarity |
+| Naive Bayes | Unit III, Lab 9 | A retention comparison with stated assumptions | Implemented in Section 9 | Keep a justified variant. Explain conditional independence and feature assumptions |
+| SVM | Unit III, Lab 10 | A retention classifier comparison | Implemented in Section 9 | Keep a simple configuration. Explain margin, C, scaling, and the kernel used |
 | Random Forest | Unit V | A retention ensemble comparison | Planned | Keep as the primary ensemble. Explain tree diversity, bagging, and feature subsets |
 | Basic boosting | Unit V | An optional additional ensemble comparison | Planned option | One simple example is enough if useful after Random Forest |
 | Small ANN and backpropagation | Unit IV, Lab 13 | Neural learning and a small retention comparison | Planned | Keep one small hidden-layer network and learning curves |

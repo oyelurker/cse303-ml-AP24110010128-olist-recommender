@@ -1111,6 +1111,255 @@ The syllabus scope is now the working implementation guide. SVD, advanced boosti
 
 **Commit status** — Pending user review and commit.
 
+## Topic 8 — Content-based and item-based collaborative recommendations
+
+### Purpose and data used
+
+Implement the two Unit II recommender approaches using the same validation protocol as popularity. Historical purchases before 1 April 2018 form the learning data. The following 30 days supply future discovery relevance. Candidates are products observed in history, and purchased products are excluded from each customer's suggestions. The 90 eligible warm customers have at least one future, previously unseen product in that historical catalog. This is a restricted cohort, not every future shopper.
+
+The historical matrix contains 63,881 customers, 22,964 candidate products and 68,203 distinct customer-product pairs. No minimum-history filter removes short-history users. Repeat purchases of the same product contribute one binary interaction. Purchase records are implicit positive evidence. Unobserved pairs are unknown, rather than explicit dislikes.
+
+### Notebook blocks and what each line of work does
+
+| Block | Processing steps and reason |
+|---|---|
+| `fit-content-item-vectors` | Select historical candidate IDs. Filter item events before the cutoff. Calculate median historical price per product. Join prepared category metadata. Learn price quartiles from historical candidates. Encode category and price band, apply fixed weights, and normalize vectors. |
+| `fit-item-collaborative-similarities` | Map customer and product IDs to integer positions. Build a binary CSR matrix from distinct historical pairs. Normalize product columns. Multiply transposed columns by columns to obtain cosine similarities. Remove self-links and retain at most 20 outgoing neighbors per product. |
+| `define-syllabus-recommenders` | Build a content profile or sum collaborative neighbor scores. Exclude seen products. Order by score, historical buyer count and product ID. Fill zero-score positions with popularity and label those rows. Return readable reasons. |
+| `evaluate-syllabus-recommenders` | Apply all three methods to the same 90 customers at K=5 and K=10. Reuse the checked top-K metrics. Report catalog coverage and fallback fractions, then plot Recall and NDCG at five. |
+| `check-recommender-cold-start` | Exercise a new customer and a one-product customer. Score a simulated metadata-only product separately from the benchmark. Show recommendations with readable categories and explicit fallback reasons. |
+| `worked-content-cosine` | Compare two actual products by hand and by encoded sparse-vector multiplication. |
+| `worked-collaborative-score` | Select a retained collaborative link, count shared and total buyers, calculate cosine by hand, and sum retained contributions for a real customer's candidate. |
+| `validate-syllabus-recommenders` | Check historical cutoffs, matrix structure, vector norms, neighbor limits, baseline parity, unique unseen candidates, cold-start behavior and manual score agreement. |
+
+### Content representation and manual calculation
+
+`OneHotEncoder` learns category and price-band coordinates on historical candidates. Product median prices are divided at BRL 39.90, 78.99 and 152.00 into four bands. Missing metadata has explicit unknown labels. The resulting item matrix has 77 columns.
+
+Category coordinates have weight 2 and price-band coordinates weight 1. These are declared teaching choices. Each training product therefore has squared vector length 2² + 1² = 5. `normalize` divides a vector by its Euclidean length. Cosine is the dot product of normalized vectors.
+
+The worked products are both in category `auto`, priced at BRL 129.90 and BRL 52.00, in different bands. Their cosine is `(2×2 + 0)/5 = 0.8`, matching the encoded-vector result. Same category and band gives 1, same band alone gives 0.2, and neither match gives 0.
+
+For a known customer, multiply their binary interaction row by the item vectors, then normalize that summed profile. Score each candidate by its cosine with the profile. Repeated units do not strengthen a binary history entry. Coarse metadata creates ties, resolved with historical popularity and then product ID. Similarity scores are not purchase probabilities.
+
+### Collaborative representation and manual calculation
+
+Each item is represented by its vector of historical buyers. For two products A and B, cosine is `shared_buyers / sqrt(buyers_A × buyers_B)`. Normalizing matrix columns and multiplying `X_normalized.T @ X_normalized` computes these similarities. Diagonal removal prevents a product recommending itself.
+
+Retaining at most 20 neighbors per source product bounds the stored neighborhood. Pruning can make the retained relation directional, even though the original cosine is symmetric. A customer's candidate score is the sum of retained similarities from their purchased products. Links discarded by pruning contribute zero.
+
+The worked historical product has 12 buyers and its candidate has 18. They share one buyer, giving `1 / sqrt(12×18) = 0.068041`. The example customer's summed retained contribution and implemented score both equal 0.068041. One shared buyer is weak evidence, even when cosine is positive.
+
+There are 9,928 retained directed links. The customer-product matrix's stored CSR data, index and pointer arrays use about 1.02 MiB, compared with a theoretical 10.93 GiB float64 dense grid. This is the interaction matrix storage comparison, not total process memory or similarity-computation peak memory.
+
+### Shared serving rules and cold starts
+
+Already purchased products receive excluded scores. Recommendations sort first by model score, then buyer count, then product ID for deterministic ties. A positive content or collaborative score retains its method reason. When positive scores run out, remaining positions are filled from popularity and marked `popularity_fallback=True`.
+
+| Example case | Popularity fills in content top five | Popularity fills in collaborative top five |
+|---|---|---|
+| New customer | 5 | 5 |
+| Selected one-product customer | 0 | 5 |
+
+The popularity method is itself the baseline, so its own rows are not counted as fallback. These two fixtures demonstrate behavior. The full validation cohort supplies aggregate fallback measurements.
+
+A simulated new product with a known category and example price receives content score 1.0 for the selected customer's matching profile. It has no collaborative interaction column. This checks metadata encoding and scoring only. It is outside benchmark candidates and does not establish real new-product ranking quality. The application will need an explicit catalog-registration path and supplied metadata before recommending new products. Unknown encoder categories are ignored, so wholly unfamiliar metadata may supply little or no content evidence.
+
+### Executed validation results
+
+Metrics are macro averages over the same 90 eligible customers. Precision uses K as the denominator. Recall divides each customer's hits by their relevant product count. NDCG rewards earlier hits using logarithmic discounts and normalizes by the ideal ranking. Hit rate is the fraction with at least one hit.
+
+| Method | K | Precision | Recall | NDCG | Hit rate | Catalog coverage |
+|---|---|---|---|---|---|---|
+| Popularity | 5 | 0.002222 | 0.011111 | 0.005556 | 0.011111 | 0.000261 |
+| Content | 5 | 0.004444 | 0.022222 | 0.015409 | 0.022222 | 0.011235 |
+| Collaborative | 5 | 0.002222 | 0.005556 | 0.006813 | 0.011111 | 0.004311 |
+| Popularity | 10 | 0.002222 | 0.022222 | 0.009061 | 0.022222 | 0.000479 |
+| Content | 10 | 0.003333 | 0.033333 | 0.018621 | 0.033333 | 0.022383 |
+| Collaborative | 10 | 0.002222 | 0.016667 | 0.010318 | 0.022222 | 0.005443 |
+
+Content leads this validation comparison, but only two customers receive a relevant top-five item. Each other method hits one customer. One customer can have multiple relevant future products, explaining why collaborative Recall at 5 is below its hit rate. Low absolute quality and the small cohort limit any superiority claim.
+
+Collaborative filtering fills 77.11 percent of top-five slots and 84.89 percent of top-ten slots from popularity. Entire lists use fallback for 61.11 percent of evaluated customers. Content has zero fallback slots in this cohort, although popularity still breaks tied positive scores. Report these as recommendation systems with the documented fallback behavior. The standalone collaborative evidence is sparse.
+
+Catalog coverage is the distinct recommended product count divided by 22,964 historical candidates. Higher coverage means broader catalog exposure, without establishing relevance or sales benefit. Static category descriptions are assumed available for observed products. Historical prices are computed before the cutoff, but the dataset does not establish historical stock availability or later category edits.
+
+The weights 2 and 1, four price bands and 20 retained neighbors are fixed configurations. No optimal tuning claim is made. Final recommendation test scores remain reserved for the locked model comparison.
+
+### Code and method reference
+
+| Method or expression | Meaning |
+|---|---|
+| `groupby(...).median()` | Calculates a robust historical product price from earlier item records. |
+| `quantile` and `pd.cut` | Learn historical price boundaries and assign discrete bands using those fixed edges. |
+| `OneHotEncoder(handle_unknown='ignore')` | Converts categorical attributes to coordinates and tolerates unseen categories at scoring. |
+| `sparse.csr_matrix` | Stores observed interactions and index pointers without allocating the full customer-product grid. |
+| `get_indexer` | Maps stable external IDs to matrix row or column positions. |
+| `normalize(..., axis=0)` | Gives each item buyer column unit length for collaborative cosine. |
+| `normalize(..., axis=1)` | Gives item content rows and customer profiles unit length. |
+| `@` | Matrix multiplication, used to build profiles and sum similarity evidence. |
+| `setdiag(0)` and `eliminate_zeros()` | Remove self-similarity and explicit stored zeros. |
+| `np.lexsort` | Applies deterministic score, popularity and ID tie breaking. |
+| `tocsc()` | Supports convenient product-column access for the independent buyer-count calculation. |
+| `nonzero()[0]` | Gets customer positions with observed purchases in a product column. |
+| `top_k_metrics` | Reuses the earlier tested Precision, Recall, NDCG and hit-rate formulas. |
+
+### Viva questions and short answers
+
+1. What does content-based recommendation use? Product attributes and the customer's previously purchased product profile.
+2. What does collaborative filtering use? Purchase patterns shared across customers and products.
+3. Why can both use cosine? They compare vectors, but their coordinates represent different evidence.
+4. Why use category and price bands? They are available, understandable product descriptors. Bands avoid raw price magnitude dominating similarity.
+5. Why weight category more? It is a declared modeling assumption that category match matters more than price-band match. Validation can later test alternatives.
+6. What does an unobserved interaction mean? No observed purchase evidence. It is not an explicit negative rating.
+7. What happens for a new customer? With no history profile, return documented historical popularity suggestions.
+8. What happens for a new product? Content can use supplied metadata. Collaborative similarity needs interaction evidence. The notebook fixture illustrates this separately.
+9. Why exclude seen products? The evaluation target is future product discovery. Replenishment would require a different task definition.
+10. Why sparse matrices? Almost every customer-product cell is unobserved, so storing the full dense grid wastes memory.
+11. What does neighborhood pruning change? It retains only up to 20 strongest outgoing similarities per item and can make links directional.
+12. Why does collaborative filtering often fall back? Many historical products have too few shared buyers to provide usable unseen neighbors.
+13. Why use NDCG as well as Recall? Recall counts retrieved relevant products, while NDCG also rewards ranking them early.
+14. Is a similarity of 0.8 an 80 percent purchase probability? No. It is a geometric match score from the chosen features.
+15. Has content solved the problem? Its validation result leads these fixed configurations, but only two of 90 customers receive a top-five hit.
+16. How did we avoid future leakage? Fit candidate data, product prices, encoders, profiles and interaction similarities from pre-cutoff history. Future purchases supply evaluation labels only.
+
+### Verification and topic completion
+
+The saved notebook contains 59 consecutively executed code cells, no error outputs and 13 embedded figures. Visually inspected the new comparison figure. Checks verify historical price cutoffs, unique binary pairs, normalized content vectors, finite bounded similarities, zero diagonal and the 20-neighbor limit.
+
+For every eligible validation customer, checked unique valid candidates and seen-item exclusion across all three methods. Popularity outputs and aggregate metrics match the earlier baseline exactly. Both independent cosine calculations match implementation, and new-user and one-history cases return full five-item lists. The synthetic new-product check remains separate from benchmark scores. Final test performance is reserved.
+
+Both supplied notebooks continue to guide the project. The Kaggle reference informs preparation, EDA and preprocessing. The Week 10 starter informs this topic's recommendation progression, metrics, cold-start checks and by-hand understanding exercise. Our chronological protocol, metadata design and sparse implementation are documented adaptations. SVD and advanced NLP remain deferred. The rest of the full understanding pack is pending.
+
+**Topic commit message** — `feat: add syllabus recommenders and cold-start evaluation`.
+
+**Files in the same contribution** — `olist_pipeline.ipynb`, `PIPELINE_NOTES.md`, `README.md`, `SYLLABUS_ALIGNMENT.md`, and `requirements.txt`. SciPy is now declared explicitly because this topic directly uses its sparse matrices.
+
+**Commit status** — Pending user review and commit. No commit created automatically.
+
+## Topic 9 — Naive Bayes and linear SVM
+
+### Goal and inputs
+
+Extend the Unit III retention comparison using the existing 14,362 training customers and 11,768 validation customers. Validation has 97 repeat events. Keep the fixed 30-day decision age and next-90-day target. This topic does not modify labels, partitions, or final test scoring.
+
+Gaussian Naive Bayes uses the eleven numeric historical features. A training-fitted median imputer handles missing values. State and missingness indicators are excluded to avoid interpreting binary one-hot coordinates as Gaussian measurements. Numeric counts and ratios still depart from a Gaussian distribution, and correlated features violate conditional independence. This is an explicitly approximate teaching baseline. Its input representation differs from the SVM and logistic pipelines, so results compare complete pipelines rather than isolating the classifier alone.
+
+Both linear SVM configurations reuse training-only numeric median imputation, missing indicators, StandardScaler and state one-hot encoding. LinearSVC uses C=1, the default squared-hinge loss and L2 regularization. One fit uses ordinary weights and one uses balanced class weights. These are fixed, understandable configurations. No nonlinear kernel, large search or probability-calibration layer is added.
+
+### Notebook blocks and processing sequence
+
+| Block | Steps and reason |
+|---|---|
+| `fit-naive-bayes-and-svm` | Define a numeric-only GaussianNB pipeline and two full-feature LinearSVC pipelines. Fit on training rows. Promote convergence warnings to errors so an unconverged fit cannot silently supply results. |
+| `evaluate-naive-bayes-and-svm` | Obtain Bayes probabilities and signed SVM scores. Calculate AP and ROC-AUC from scores, then precision, recall, F1 and confusion counts from each model's native predictions. Compare training AP with validation AP and plot ranking quality. |
+| `worked-gaussian-bayes` | Choose the highest-scored validation example, impute its numeric values and calculate both class log likelihoods feature by feature. Add training log priors, normalize with log-sum-exp and compare with library probabilities. |
+| `worked-linear-svm` | Choose the balanced SVM's highest-scored validation example. Multiply each transformed coordinate by its coefficient, add the intercept and compare with the library decision score. Calculate signed hyperplane distance and training class weights. |
+| `validate-naive-bayes-and-svm` | Verify training medians, state categories, scaler sample counts, fitted Bayes class counts and positive variances. Check finite outputs, confusion totals, zero-boundary decisions and both independent worked calculations. |
+
+### Gaussian Bayes reasoning
+
+Bayes' rule combines a prior and observed evidence. GaussianNB estimates each feature's mean and variance separately within each training class. For a class c and input x, the unnormalized log score is:
+
+`log_prior_c - 0.5 * sum_j [log(2*pi*variance_cj) + (x_j - mean_cj)^2 / variance_cj]`
+
+The conditional independence assumption lets us add individual feature log densities. Subtracting `logsumexp` of the two class scores and exponentiating gives probabilities that sum to one. This is numerically safer than multiplying many small densities. The implementation uses fitted variances, including GaussianNB's small smoothing term. Its probabilities may still be poorly calibrated if its distribution assumptions are wrong.
+
+The contribution table reports each feature's repeat-class log density minus its nonrepeat-class log density. Positive contributions favor repeat, while negative ones favor nonrepeat. Adding all contributions to the prior log odds gives posterior log odds. These are model calculations, not causal effects.
+
+### SVM reasoning
+
+The linear decision score is `w dot transformed_x + b`. Positive values predict repeat, while nonpositive values predict nonrepeat. The score is not a probability. StandardScaler learns training means and standard deviations to prevent raw monetary units from dominating geometry. Encoded states and missingness indicators are part of this transformed feature space.
+
+A maximum-margin classifier balances regularization against errors. LinearSVC's squared-hinge penalty applies to margins below one. C controls the penalty strength relative to regularization. Larger C penalizes errors more strongly. C=1 is a declared initial configuration rather than an optimized value.
+
+Balanced class weights use `training_rows / (2 * training_class_count)`. This gives each class the same total training weight. The minority class receives a larger per-row weight. These weights change fitting, and can increase false positives. They do not change the observed repeat prevalence or calibrate the decision score.
+
+The signed distance `score / ||w||` describes distance to the fitted hyperplane in transformed feature space. Individual coefficient contributions explain the arithmetic for a row. They are sensitive to feature representation and correlations and are not causal feature effects.
+
+### Why the evaluation treats scores differently
+
+AP and ROC-AUC require an ordering score, so both probabilities and signed margins are valid inputs. Native class decisions use a Bayes probability boundary of 0.5 and an SVM score boundary of zero. The result table explicitly records those boundaries. We do not pass signed SVM scores into the earlier helper that assumes probabilities and a 0.5 threshold.
+
+Training AP is in-sample fit and is not independent performance. Validation guides later model selection. The final chronological test remains reserved. Threshold tuning and business costs require a separate declared evaluation decision.
+
+### Code reference
+
+| Method | Meaning |
+|---|---|
+| `GaussianNB` | Estimates a prior, mean and variance for each class using a conditionally independent Gaussian feature model. |
+| `var_smoothing=1e-9` | Adds a small variance stabilizer based on training feature variation. |
+| `LinearSVC` | Fits a linear support vector classifier without an automatic probability layer. |
+| `class_weight="balanced"` | Weights training classes inversely to their counts. |
+| `dual="auto"` | Lets the estimator choose its optimization formulation from the training shape and supported settings. |
+| `warnings.simplefilter("error", ConvergenceWarning)` | Stops this topic if the optimizer reports failure to converge. |
+| `decision_function` | Returns the signed linear decision score. |
+| `predict` | Applies each classifier's native decision rule. |
+| `logsumexp` | Computes a stable log of summed exponentials for Bayes normalization. |
+| `theta_`, `var_`, `class_prior_` | Fitted Gaussian class means, stabilized variances and training priors. |
+| `coef_`, `intercept_` | Fitted linear SVM weights and bias. |
+| `get_feature_names_out` | Maps transformed SVM coordinates back to readable names. |
+| `confusion_matrix(..., labels=[0,1])` | Keeps nonrepeat and repeat class order explicit in error counts. |
+
+### Viva questions and short answers
+
+1. Why is the classifier called naive? It assumes features are conditionally independent given the class.
+2. What is a prior? A class probability before considering the input features, estimated here from training labels.
+3. What is a likelihood? The model's density of observed feature values conditional on a class.
+4. Why use GaussianNB? We have numeric features and need an understandable Unit III baseline. Count and ratio distributions make its Gaussian assumption approximate.
+5. Why exclude state from GaussianNB? A one-hot state indicator is a binary variable rather than a Gaussian measurement. A mixed-likelihood Bayes model would require additional design.
+6. Does scaling fix the Gaussian assumption? Scaling changes units but does not turn a skewed or discrete distribution into a Gaussian one.
+7. Why calculate log likelihoods? Adding logs is more numerically stable than multiplying many small densities.
+8. Why can Naive Bayes be overconfident? Correlated evidence and wrong likelihood assumptions can exaggerate class evidence.
+9. What does SVM learn? A separating hyperplane that balances margin-related regularization against training errors.
+10. What is C? The relative penalty strength for training errors. Larger C penalizes errors more strongly.
+11. Why scale SVM numeric inputs? Margin geometry depends on feature units, so numeric features are standardized using training statistics.
+12. What is the difference between linear and kernel SVM? Linear SVM uses a hyperplane in the supplied feature space. Kernels can represent nonlinear separation through implicit feature mappings.
+13. Why choose a linear SVM here? It is manageable on this dataset, easy to inspect and directly supports the course's margin discussion.
+14. Is an SVM score of 0.8 an 80 percent probability? No. It is a signed decision score, with zero as the decision boundary.
+15. Why try class balancing? Rare repeat customers otherwise contribute much less total training weight. Balancing can trade precision for recall and needs validation.
+16. Why report AP and ROC-AUC? They assess ranking without confusing the Bayes 0.5 boundary with the SVM zero boundary. AP also reflects the rare positive-class setting.
+17. Is training performance proof of generalization? No. Training examples were used during fitting. The chronological validation and reserved test assess unseen periods.
+18. Do the worked examples prove the models predict well? They verify score arithmetic. The full validation metrics assess predictive performance.
+
+### Executed results and interpretation
+
+| Model | Training AP | Validation AP | ROC-AUC | Precision | Recall | F1 |
+|---|---|---|---|---|---|---|
+| Gaussian NB numeric | 0.014551 | 0.013115 | 0.528977 | 0.023936 | 0.092784 | 0.038055 |
+| Linear SVM | 0.023872 | 0.010308 | 0.512059 | 0 | 0 | 0 |
+| Linear SVM balanced | 0.019595 | 0.010450 | 0.523457 | 0.008566 | 0.443299 | 0.016807 |
+
+| Model | True negatives | False positives | False negatives | True positives | Positive decisions |
+|---|---|---|---|---|---|
+| Gaussian NB numeric | 11304 | 367 | 88 | 9 | 376 |
+| Linear SVM | 11671 | 0 | 97 | 0 | 0 |
+| Linear SVM balanced | 6694 | 4977 | 54 | 43 | 5020 |
+
+The prior validation AP is 0.008243, and earlier Logistic Regression AP is 0.016882. All three new configurations are above the prior AP reference but below Logistic Regression on this metric. GaussianNB's ROC-AUC is 0.528977, while Logistic Regression's earlier value is 0.515552. Those metrics assess different aspects of the score ordering. Neither establishes useful real-world prediction quality in this rare-event task.
+
+Ordinary SVM still makes zero repeat decisions at its native boundary. Balanced SVM catches 43 of 97 repeats but raises 4,977 false positives. Its precision is about 0.857 percent. This makes the class-weight trade-off explicit. Class balancing does not automatically improve minority precision or ranking enough for deployment.
+
+GaussianNB catches nine repeats among 376 positive predictions, precision about 2.394 percent. Its worked highest-scored example receives a repeat probability effectively 1.0 but has actual label 0. Both manual and library outputs agree, with nonrepeat probability about 6.975e-16. The feature log-likelihood ratio is particularly large for distinct sellers (17.736906) and historical order count (12.067656). Correlated historical counts and approximate Gaussian likelihoods can amplify confidence. This single example demonstrates a failure case rather than establishing a dataset-wide calibration result.
+
+Training class priors are approximately 0.990252 nonrepeat and 0.009748 repeat. Balanced SVM uses class weights 0.504922 and 51.292857 for the 14,222 nonrepeat and 140 repeat training rows respectively. Each class therefore contributes total weight 7,181.
+
+The worked balanced SVM has intercept -0.382292. Its manual feature sum plus intercept and library decision score both equal 1.196948. Signed distance is 0.214712 in the transformed feature space. The selected customer's actual label is 0. The highest-score selection is for reproducible arithmetic, so these two worked examples are not representative samples.
+
+### Verification and topic completion
+
+Executed all 64 code cells sequentially from data loading through supplementary evaluation. There are 14 embedded figures and no error outputs. Visually inspected the new AP/ROC-AUC plot. All three new models fit without convergence warnings.
+
+Independently checked training-only imputation statistics, SVM scaling sample counts and state encoder categories. Verified Gaussian class counts and positive variances, finite score lengths, confusion matrix totals and repeat counts. Native SVM predictions match positive decision scores. Manual Bayes normalization, manual SVM weighted sum and balanced weight totals match their fitted implementations. Static checks confirm the new code does not use X_test or y_test. Final test performance remains reserved.
+
+The notebook uses existing dependencies. This topic adds no application framework, nonlinear kernel search or probability calibration layer. Both supplied notebooks remain references as mapped near the notebook start. The Gaussian and SVM teaching exercises are our course-aligned additions.
+
+**Suggested topic commit message for later** — `feat: compare Naive Bayes and linear SVM with viva examples`.
+
+**Files for this topic** — `olist_pipeline.ipynb`, `PIPELINE_NOTES.md`, `README.md`, and `SYLLABUS_ALIGNMENT.md`.
+
+**Commit status** — Left uncommitted at the user's request. The preceding recommendation topic is also still uncommitted. No Git commit or staging action was performed.
+
 ## Next notebook topic
 
-Implement the syllabus content-based and item-based collaborative recommenders, compare them with popularity under the established validation protocol, and add understandable cold-start behavior and worked examples. Develop that topic and its reference notes together.
+Add a small, controlled Random Forest comparison for repeat-purchase prediction. Explain bootstrap sampling, random feature subsets, tree diversity and overfitting. Compare the same validation metrics and error trade-offs, with training-only preprocessing and matching reference notes. Keep final test scoring reserved until the model comparison is locked.
