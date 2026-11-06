@@ -10,7 +10,7 @@ The project corresponds to catalog topic 9.2, Tier A E-commerce Recommendation.
 
 ## Current status
 
-All nine source tables have been loaded and inspected for column types, missing values, exact duplicates, identifier uniqueness, and relationship coverage. The notebook includes executed outputs and explanations of the findings. Cleaning, EDA, model training, and application development are pending. The application framework and chatbot technology will be selected as the pipeline develops.
+All nine source tables have been loaded and inspected for column types, missing values, exact duplicates, identifier uniqueness, and relationship coverage. The first cleaning checkpoint converts eight timestamp columns in working copies and audits missing lifecycle dates and event ordering. The notebook includes executed outputs and explanations. Further cleaning, EDA, model training, and application development are pending. The application framework and chatbot technology will be selected as the pipeline develops.
 
 Open [the project notebook](olist_pipeline.ipynb) in VS Code, select a Python Jupyter kernel with pandas installed, and run the cells from top to bottom with the repository root as the working directory. The initial section includes saved outputs from execution against the local CSVs.
 

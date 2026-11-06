@@ -275,6 +275,87 @@ Executed using Python 3.12.14 and pandas 3.0.1.
 
 **Commit status** — Pending.
 
+## Step 3 Prepare timestamps and inspect order timing
+
+**Notebook location** — `olist_pipeline.ipynb`, sections 3.1 through 3.3.
+
+**Purpose** — Convert timestamp strings for date comparisons while retaining evidence about missing or inconsistent events.
+
+| Code or method | Explanation and reason |
+|---|---|
+| `date_columns` | Lists the eight timestamp columns in orders, items, and reviews. |
+| `prepared_tables = tables.copy()` | Copies the dictionary mapping. Its DataFrames are initially shared. |
+| `tables[table_name].copy()` | Creates an independent working DataFrame for each table being changed. |
+| `pd.to_datetime(..., format=..., errors="coerce")` | Parses the stated timestamp format and represents unparseable values as NaT. |
+| `original.notna() & converted.isna()` | Identifies newly missing values caused by failed parsing, separating them from pre-existing missingness. |
+| `conversion_rows.append(...)` | Records counts before and after each conversion and the resulting dtype. |
+| `prepared_tables[table_name][column_name] = converted` | Assigns converted dates to the copied working table. |
+| `.isna()` | Creates missing-value indicators for lifecycle dates. |
+| `.insert(0, ...)` | Adds the status or group-size column at the beginning of a summary. |
+| `.groupby("order_status").sum()` | Counts missing dates within each recorded status. |
+| `.groupby("order_status").size()` | Counts orders in each status group. |
+| `.agg(["min", "max"])` | Finds the earliest and latest observed purchase timestamps. |
+| `event_pairs` | Defines actual event sequences to inspect. |
+| `earlier.notna() & later.notna()` | Restricts each sequence check to orders with both timestamps available. |
+| `later < earlier` | Detects a reversed event sequence. |
+| `order_timing_flags` | Holds order identifiers and separate boolean flags for later inspection. |
+| `.any(axis=1).sum()` | Counts distinct rows with at least one flag, avoiding double counting across checks. |
+
+### Observed conversion results
+
+| table | column | missing_before | parse_failures | missing_after | new_dtype |
+| --- | --- | --- | --- | --- | --- |
+| orders | order_purchase_timestamp | 0 | 0 | 0 | datetime64[us] |
+| orders | order_approved_at | 160 | 0 | 160 | datetime64[us] |
+| orders | order_delivered_carrier_date | 1783 | 0 | 1783 | datetime64[us] |
+| orders | order_delivered_customer_date | 2965 | 0 | 2965 | datetime64[us] |
+| orders | order_estimated_delivery_date | 0 | 0 | 0 | datetime64[us] |
+| order_items | shipping_limit_date | 0 | 0 | 0 | datetime64[us] |
+| order_reviews | review_creation_date | 0 | 0 | 0 | datetime64[us] |
+| order_reviews | review_answer_timestamp | 0 | 0 | 0 | datetime64[us] |
+
+### Missing lifecycle dates by recorded status
+
+| order_status | orders | order_purchase_timestamp | order_approved_at | order_delivered_carrier_date | order_delivered_customer_date | order_estimated_delivery_date |
+| --- | --- | --- | --- | --- | --- | --- |
+| approved | 2 | 0 | 0 | 2 | 2 | 0 |
+| canceled | 625 | 0 | 141 | 550 | 619 | 0 |
+| created | 5 | 0 | 5 | 5 | 5 | 0 |
+| delivered | 96478 | 0 | 14 | 2 | 8 | 0 |
+| invoiced | 314 | 0 | 0 | 314 | 314 | 0 |
+| processing | 301 | 0 | 0 | 301 | 301 | 0 |
+| shipped | 1107 | 0 | 0 | 0 | 1107 | 0 |
+| unavailable | 609 | 0 | 0 | 609 | 609 | 0 |
+
+### Event sequence results
+
+| check | orders_with_both_events | inconsistent_orders |
+| --- | --- | --- |
+| approval_before_purchase | 99281 | 0 |
+| carrier_before_approval | 97644 | 1359 |
+| delivery_before_carrier | 96475 | 23 |
+| delivery_before_purchase | 96476 | 0 |
+
+Distinct orders with at least one timing flag — 1382.
+
+Observed purchase timestamp coverage — 2016-09-04 21:15:19 through 2018-10-17 17:30:18.
+
+
+### Verification and decisions
+
+- Executed all ten notebook code cells in order and saved their actual outputs.
+- Verified eight conversion audit entries and the identity between original missingness, parse failures, and final missingness.
+- Verified the three changed working tables retain their row counts.
+- Verified original date columns remain in their loaded representation and working date columns have datetime dtypes.
+- Kept missing lifecycle values as NaT while inspecting status. Future missing-data handling will depend on task and event availability.
+- Stored chronological flags for investigation before choosing exclusions.
+- Recorded statuses are descriptive here. Predictive features will need historical availability checks.
+- The prepared mapping shares unchanged source DataFrames. Future transformations must copy a table before modifying it.
+
+**Suggested commit message** — `feat: parse Olist timestamps and audit order timing`.
+
+**Commit status** — Pending.
+
 ## Next notebook section
 
-Investigate repeated review records, exact geolocation duplicates, missing categories and translations, and missing order lifecycle events. Use the observed records to choose cleaning rules, then report the before-and-after effects of each applied rule.
+Investigate repeated review identifiers and multiple reviews per order. Choose a reproducible selection or aggregation rule with explicit review timing, before preparing order-level review features.
