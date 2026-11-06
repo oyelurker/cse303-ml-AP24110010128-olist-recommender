@@ -26,9 +26,9 @@ Recommendation and repeat-purchase prediction will have separate explanations wh
 4. Explain each meaningful line or related group of lines in the notes, including the role of important variables and methods.
 5. Record the observed result and any checks, issues, or decisions.
 6. Save the notebook and update these notes together.
-7. Review the changes and create a focused Git commit for the completed section.
+7. Once the complete topic is finished and verified, review and commit the notebook, notes, and relevant README updates together.
 
-A section may contain several related cells. Commit when the section produces a verified, understandable result. Record genuine problems and fixes when they occur.
+A topic may span several sections and coding sessions. Keep notes current throughout the work, then create one meaningful contribution for the completed topic, such as data cleaning or EDA. Record genuine problems and fixes when they occur.
 
 ## Format for future entries
 
@@ -352,10 +352,208 @@ Observed purchase timestamp coverage — 2016-09-04 21:15:19 through 2018-10-17 
 - Recorded statuses are descriptive here. Predictive features will need historical availability checks.
 - The prepared mapping shares unchanged source DataFrames. Future transformations must copy a table before modifying it.
 
-**Suggested commit message** — `feat: parse Olist timestamps and audit order timing`.
+**Contribution** — Included in the data cleaning and preparation topic.
 
 **Commit status** — Pending.
 
-## Next notebook section
+## Step 4 Investigate reviews and prepare order-level summaries
 
-Investigate repeated review identifiers and multiple reviews per order. Choose a reproducible selection or aggregation rule with explicit review timing, before preparing order-level review features.
+**Notebook location** — `olist_pipeline.ipynb`, sections 3.4 through 3.6.
+
+**Purpose** — Distinguish repeated identifiers from multiple reviews per order, then create a reproducible one-row-per-order review summary.
+
+**Inputs** — Timestamp-prepared review and order tables.
+
+### Code and method explanations
+
+| Code or method | Explanation and reason |
+|---|---|
+| `review_events = prepared_tables["order_reviews"].copy()` | Creates an independent review working table and retains all original review rows. |
+| `.groupby("review_id").agg(...)` | Counts records and distinct orders sharing each review identifier. |
+| `.groupby("order_id").agg(...)` | Counts review rows, distinct review identifiers, and distinct scores per order. |
+| `"size"` | Counts rows in a group. |
+| `"nunique"` | Counts distinct observed values in a group. |
+| `multiple_reviews` | Selects orders with more than one review row. |
+| `changing_scores` | Selects those orders whose observed review scores differ. |
+| `.duplicated(["review_id", "order_id"])` | Checks the combined review-order key instead of assuming review ID alone is unique. |
+| `.head(3).index` | Chooses three example order identifiers with changing scores. |
+| `.loc[...isin(example_order_ids), ...]` | Displays the relevant records and fields for those example orders. |
+| `review_available_at` | Uses the recorded answer timestamp as an availability proxy. |
+| `raise ValueError(...)` | Stops selection if timestamps or combined keys need further investigation. |
+| `.sort_values(..., kind="stable")` | Orders events chronologically with explicit tie breakers. |
+| `.drop_duplicates(subset="order_id", keep="first")` | Selects the earliest answered review for each order after sorting. |
+| `.rename(columns=...)` | Makes the first-review meaning explicit in the resulting column names. |
+| `.reset_index(drop=True)` | Gives the selected summary a consecutive row index. |
+| `.set_index("order_id")` | Builds a purchase-time lookup keyed by unique order identifier. |
+| `.map(purchase_times)` | Looks up the associated purchase timestamp for each review row. |
+| `eligible_review_events` | Selects reviews with an observed purchase date and an answer at or after that purchase. |
+| `.merge(..., how="left", validate="one_to_one")` | Tests review enrichment while preserving orders and checking key uniqueness. |
+| `validate="many_to_one"` | Allows several review events to link to one order while checking the order-side key. |
+| `first_review_available_at <= prediction_time` | The eligibility rule to apply when constructing future historical review features. |
+| `.groupby(...).min()` | Independently finds the earliest eligible availability time per order. |
+| `.equals(...)` | Verifies selected timestamps match those earliest times for every order. |
+
+### Observed review audit
+
+| check | count |
+| --- | --- |
+| Exact duplicate review rows | 0 |
+| Repeated review ID groups | 789 |
+| Review IDs attached to multiple orders | 789 |
+| Repeated review and order key rows | 0 |
+| Orders with multiple review rows | 547 |
+| Multi-review orders with different scores | 202 |
+| Repeated order and answer timestamp rows | 0 |
+
+### Selection counts
+
+| measure | count |
+| --- | --- |
+| Review event rows retained | 99224 |
+| Review rows eligible after timing check | 99161 |
+| Answers before purchase excluded from selection | 63 |
+| First review rows selected | 98613 |
+| All event rows outside the selected summary | 611 |
+
+### Join and timing checks
+
+| check | count |
+| --- | --- |
+| Orders before review join | 99441 |
+| Orders after review join | 99441 |
+| Orders without selected review | 828 |
+| Answers recorded before purchase | 63 |
+| Answers recorded before review creation | 0 |
+
+### Decisions and interpretation
+
+- Found 63 answers timestamped before their associated purchases. Retained and flagged these in the event table, then excluded them from summary selection.
+- Mapped each order's purchase date using a unique order index. Selected eligible reviews only when a purchase date exists and the answer is at or after it.
+- The timing eligibility check complements the later prediction-date availability check.
+
+- The audit found repeated review identifiers attached to different orders. Removing records by review ID alone would lose order-review relationships.
+- Multiple review rows on one order can have different scores. Earliest response among records passing the purchase-timing check is the documented initial selection rule.
+- Keep the full `review_events` table for future analysis and alternative time-aware policies.
+- Keep the first review's timestamp with its score. Future feature construction must check that timestamp against the historical prediction date.
+- Review availability uses the recorded answer time as a proxy. The dataset cannot establish earlier visibility of content that may have been edited.
+- Orders lacking a review retain a missing review signal in the test left join.
+- Retain later reviews in the event table and keep descriptive review selection separate from a future repeat-purchase target.
+
+### Verification and commit checkpoint
+
+- Executed all thirteen code cells in notebook order against the actual CSVs.
+- Verified unique order identifiers and one selected row for each order with an eligible review.
+- Independently checked every selected timestamp against the minimum eligible answer timestamp for its order.
+- Verified that the test review merge preserves the source order count.
+- Saved executed outputs, changing-score examples, and measured audit tables in the notebook.
+
+**Contribution** — Included in the data cleaning and preparation topic.
+
+**Commit status** — Pending.
+
+## Complete topic Data cleaning and preparation
+
+The timestamp and review sections above are parts of this single topic. Notebook execution and learning notes are reviewed and committed together at topic completion.
+
+### Geolocation lookup
+
+**Notebook section** — 3.7.
+
+Drop exact duplicate observations before calculating median coordinates per prefix. Exclude missing or physically invalid coordinates from this lookup input. Left-join the unique lookup to customers and sellers using a many-to-one validation and keep match flags.
+
+| measure | count |
+| --- | --- |
+| Original observations | 1000163 |
+| Exact duplicate rows removed from lookup inputs | 261831 |
+| Distinct observations excluded by coordinate checks | 0 |
+| Unique postal prefixes in lookup | 19015 |
+| Customer records without coordinates | 278 |
+| Seller records without coordinates | 7 |
+
+### Product metadata
+
+**Notebook section** — 3.8.
+
+Join category translations with many-to-one validation. Use an explicit unknown label for missing categories and preserve untranslated original names in fallback labels. Keep separate missing and untranslated flags. The 13 untranslated products use the original categories portateis_cozinha_e_preparadores_de_alimentos and pc_gamer.
+
+Nonpositive physical weight or dimensions become missing measurements with flags. Other observed missing physical or descriptive values remain available for later training-fitted imputation.
+
+| column | original_missing | nonpositive_to_missing |
+| --- | --- | --- |
+| product_weight_g | 2 | 4 |
+| product_length_cm | 2 | 0 |
+| product_height_cm | 2 | 0 |
+| product_width_cm | 2 | 0 |
+
+### Items and payments
+
+**Notebook section** — 3.9.
+
+Validate composite keys, then aggregate items and payments separately to order-level summaries. Count source item rows as item count and preserve distinct product and seller counts. Sum prices and freight from item rows, and payment values from payment rows. Keep observed zero payments and freight. Flag the two zero-installment records.
+
+### Analytical tables and validation
+
+**Notebook sections** — 3.10 and 3.11.
+
+Use left joins to create order_facts at one row per order, with stable customer identity and optional detail signals. Create purchase_events at one row per order item. Both retain the source row counts for their respective row units.
+
+| table | rows | row_unit |
+| --- | --- | --- |
+| order_facts | 99441 | one source order |
+| purchase_events | 112650 | one source order item |
+| products_prepared | 32951 | one source product |
+| first_review_per_order | 98613 | one order with an eligible review |
+| geolocation_lookup | 19015 | one postal-code prefix |
+
+| amount | source_total | prepared_total | absolute_difference |
+| --- | --- | --- | --- |
+| items_value | 13591643.7 | 13591643.7 | 0.0 |
+| freight_total | 2251909.54 | 2251909.54 | 0.0 |
+| payment_total | 16008872.12 | 16008872.12 | 0.0 |
+
+### Code reference
+
+| Code or method | Explanation and reason |
+|---|---|
+| `.drop_duplicates()` | Removes identical geolocation observations from lookup inputs. |
+| `.between(lower, upper)` | Checks physical latitude and longitude bounds. |
+| `.groupby(..., as_index=False).agg(...)` | Creates one record per grouping key with explicit summary calculations. |
+| `"median"` | Calculates a representative coordinate robust to extreme observations. |
+| `"size"` | Counts source records within each group. |
+| `"nunique"` | Counts distinct product, seller, or payment-method values. |
+| `"sum"` | Adds values once at the chosen input grain. |
+| `.merge(..., validate="many_to_one")` | Checks that the enrichment table is unique on the join key. |
+| `.merge(..., validate="one_to_one")` | Checks uniqueness on both sides of an order-level merge. |
+| `how="left"` | Preserves the left table's records while representing missing matches. |
+| `.fillna(...)` | Applies explicit category labels using translations, original category names, and then unknown. |
+| `.le(0)` | Flags nonpositive physical measurements. |
+| `.loc[invalid, column] = float("nan")` | Replaces invalid working measurements with missing values, retaining the product and its flag. |
+| `.eq(0)` | Identifies zero-installment records for an explicit flag. |
+| `.notna()` | Creates match and record-availability flags. |
+| `.is_unique` | Checks identifier uniqueness after preparation. |
+| `assert` | Stops notebook execution if a required validation fails. |
+| `abs(source_total - prepared_total)` | Measures any monetary change introduced by aggregation and joins. |
+
+### Interpretation and deferred modeling decisions
+
+- Coordinate lookup and optional enrichment preserve customer and seller row counts.
+- Source order status and all source orders remain available for EDA. Eligible purchase or retention cohorts will be defined with the target and prediction time.
+- Timing flags are retained as evidence for later feature or eligibility decisions.
+- Selected review features require a prediction-date availability check even after the review timing audit.
+- No statistical outlier trimming or full-dataset imputation has been applied. EDA will inform later preprocessing choices.
+- Prepared tables are in-memory outputs of notebook execution. The application will later use extracted, verified pipeline components.
+- Full-snapshot analytical tables describe the downloaded data. Historical model features must be computed from information available at the prediction date.
+
+### Topic verification
+
+Executed all eighteen code cells in order and saved their outputs. Validated source row counts at the order, item, product, customer, and seller grains. Checked category completeness, stable customer mapping, lookup uniqueness, and independent monetary reconciliation.
+
+**Topic commit message** — `feat: complete Olist data cleaning and validated table preparation`.
+
+**Files in the same contribution** — `olist_pipeline.ipynb`, `PIPELINE_NOTES.md`, and the relevant `README.md` update.
+
+**Commit status** — Pending user review and commit.
+
+## Next notebook topic
+
+Perform EDA using the prepared tables. Develop plots, descriptive statistics, customer and product analysis, and interpretation together with the reference notes, then review them as one complete topic.

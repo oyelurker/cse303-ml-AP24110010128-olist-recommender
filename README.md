@@ -10,7 +10,7 @@ The project corresponds to catalog topic 9.2, Tier A E-commerce Recommendation.
 
 ## Current status
 
-All nine source tables have been loaded and inspected for column types, missing values, exact duplicates, identifier uniqueness, and relationship coverage. The first cleaning checkpoint converts eight timestamp columns in working copies and audits missing lifecycle dates and event ordering. The notebook includes executed outputs and explanations. Further cleaning, EDA, model training, and application development are pending. The application framework and chatbot technology will be selected as the pipeline develops.
+Data inspection and the data cleaning and preparation topic are complete. The notebook prepares timestamps, review summaries, a geographic lookup, category labels, and validated order and item analytical tables. It preserves 99,441 source orders and 112,650 source item records, with item, freight, and payment totals reconciled independently. EDA is the next topic, followed by feature engineering, model development, and the application. The application framework and chatbot technology remain to be selected.
 
 Open [the project notebook](olist_pipeline.ipynb) in VS Code, select a Python Jupyter kernel with pandas installed, and run the cells from top to bottom with the repository root as the working directory. The initial section includes saved outputs from execution against the local CSVs.
 
