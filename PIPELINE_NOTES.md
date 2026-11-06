@@ -154,6 +154,127 @@ Executed using Python 3.12.14 and pandas 3.0.1.
 
 **Commit status** — Pending.
 
+## Step 2 Inspect the source data
+
+**Purpose** — Understand the source tables and measure quality issues before choosing cleaning or join rules.
+
+**Notebook location** — `olist_pipeline.ipynb`, section 2 Inspect the source data.
+
+**Inputs** — The nine loaded DataFrames in `tables`.
+
+### Step 2.1 Sample rows
+
+**Method and reason** — Print the first two rows of every table to understand the available fields and the meaning of a record. Sample rows illustrate structure and are not representative statistical summaries.
+
+| Code | Plain-language explanation |
+|---|---|
+| `for table_name, dataframe in tables.items()` | Visits each named DataFrame loaded in step 1. |
+| `dataframe.head(2)` | Selects the first two rows for display. |
+| `.to_string(index=False, max_colwidth=40)` | Formats the sample as readable text and truncates long displayed values. The stored values are preserved. |
+| `print()` | Adds spacing between the displayed tables. |
+
+**Observed output** — Printed samples from all nine tables. Order items contain products within an order. Payment records include a sequence field. Review records include scores, text, and dates.
+
+### Step 2.2 Column types and missing values
+
+**Method and reason** — Profile all 52 columns to understand their loaded representation, completeness, and number of distinct observed values.
+
+| Code | Plain-language explanation |
+|---|---|
+| `profile_rows = []` | Creates a list for the column-level inspection records. |
+| `for column_name in dataframe.columns` | Visits every column in the current table. |
+| `column = dataframe[column_name]` | Selects one column as a pandas Series. |
+| `column.isna()` | Marks missing values with True and observed values with False. |
+| `column.isna().sum()` | Counts the missing values in that column. |
+| `int(...)` | Converts a count to a Python integer for the summary. |
+| `str(column.dtype)` | Records the column's loaded data type as text. |
+| `100 * missing_count / len(dataframe)` | Calculates the percentage of rows missing this field. |
+| `round(..., 2)` | Rounds the displayed percentage to two decimal places. |
+| `column.nunique(dropna=True)` | Counts distinct non-missing values. |
+| `profile_rows.append({...})` | Records the current column's measurements. |
+| `pd.DataFrame(profile_rows)` | Builds the full column-profile table. |
+| `.loc[column_profile["missing_count"] > 0]` | Selects only columns containing missing values. |
+| `.sort_values("missing_percent", ascending=False)` | Lists the most incomplete columns first. |
+
+**Observed output** — The review title column is missing 87,656 values, or 88.34 percent. Review messages are missing 58,247 values, or 58.70 percent. Product categories are missing for 610 products. Four product physical-attribute columns each have two missing values. Approval, carrier, and customer-delivery timestamps also have missing values.
+
+**Decision** — Keep missingness visible for the cleaning discussion. Review text availability will need a separate eligibility policy if we add an NLP task. Timestamp conversion remains a later operation.
+
+### Step 2.3 Exact duplicates and identifiers
+
+**Method and reason** — Separate identical rows from repeated identifiers. Identifiers have different intended roles, so interpreting repetition requires knowing the table's row unit.
+
+| Code | Plain-language explanation |
+|---|---|
+| `dataframe.duplicated().sum()` | Counts identical full rows after the first occurrence. |
+| `key_definitions` | Lists the identifier columns to inspect and how repetition should be interpreted. |
+| `dataframe[key_columns]` | Selects the single or composite identifier under inspection. |
+| `.isna().any(axis=1).sum()` | Counts rows where at least one component of that identifier is missing. |
+| `.duplicated(subset=key_columns).sum()` | Counts additional rows sharing the same key after the first occurrence. |
+| `" + ".join(key_columns)` | Formats a composite key clearly in the summary. |
+| `pd.DataFrame(key_rows)` | Collects the key checks into one table. |
+
+**Observed output**
+
+| Check | Measured result |
+|---|---:|
+| Unique stable customer identifiers | 96,096 |
+| Customer records beyond the first stable-ID occurrence | 3,345 |
+| Exact duplicate geolocation rows after the first occurrence | 261,831 |
+| Exact duplicate rows in the other eight tables | 0 |
+| Additional repeated review-ID occurrences | 814 |
+| Additional repeated order-ID occurrences in reviews | 551 |
+| Missing or duplicated expected-unique keys | 0 |
+
+**Interpretation** — Additional repeated-key rows are not the number of distinct groups affected. Several order-level customer records may correspond to one person. Several line items or payment records may belong to one order. Repeated review identifiers need deeper inspection. Repeated postal prefixes can represent multiple geographic observations.
+
+**Decision** — Preserve the source rows during this checkpoint. In the cleaning section, inspect review multiplicity and prepare a justified geolocation lookup. Frequency and spending calculations will use a deliberate aggregation grain.
+
+### Step 2.4 Relationship coverage
+
+**Method and reason** — Check parent references without merging tables, then measure which orders lack item, payment, or review records. This reveals possible row loss from future inner joins.
+
+| Code | Plain-language explanation |
+|---|---|
+| `relationships` | Lists child and parent table-column pairs to check. |
+| `child_values` and `parent_values` | Select the identifiers on either side of a relationship. |
+| `parent_values.dropna()` | Excludes missing parent values from the matching lookup. |
+| `child_values.isin(parent_values)` | Checks whether each child value appears in the parent values. |
+| `~...` | Reverses a boolean mask, selecting the non-matches. |
+| `child_values.notna() & ~child_values.isin(parent_values)` | Selects observed child identifiers with no parent match, separating them from missing child identifiers. |
+| `unmatched.sum()` | Counts unmatched child rows. |
+| `order_ids.isin(tables[related_table]["order_id"])` | Checks whether each order has at least one related record. |
+| `(~...).sum()` | Counts orders without such a record. |
+
+**Observed output**
+
+| Relationship or coverage check | Result |
+|---|---:|
+| Unmatched order customer identifiers | 0 |
+| Unmatched item order, product, or seller identifiers | 0 |
+| Unmatched payment or review order identifiers | 0 |
+| Products with an observed category absent from translations | 13 |
+| Customer records with postal prefixes absent from geolocation | 278 |
+| Seller records with postal prefixes absent from geolocation | 7 |
+| Orders without item records | 775 |
+| Orders without payment records | 1 |
+| Orders without review records | 768 |
+
+**Decision** — Inspect missing relationships before choosing join types or order eligibility. Aggregate repeated detail records before joining when necessary. An optional geographic or text field should have a deliberate missing-data policy.
+
+### Verification and commit checkpoint
+
+- Reran the notebook's seven code cells in order against the actual CSV files and saved their outputs.
+- Checked that the column profile contains one entry for each of the 52 source columns.
+- Confirmed all expected-unique keys have zero missing or duplicated key rows.
+- Verified all nine defined relationship checks ran.
+- Added interpretation of measured findings in notebook section 2.5.
+- Created diagnostic summaries while retaining the loaded source tables for subsequent work.
+
+**Suggested commit message** — `feat: inspect Olist schemas missing data and keys`.
+
+**Commit status** — Pending.
+
 ## Next notebook section
 
-Inspect sample rows and column types, then measure missing values and duplicate keys. Explain and verify those findings before choosing cleaning rules or combining tables.
+Investigate repeated review records, exact geolocation duplicates, missing categories and translations, and missing order lifecycle events. Use the observed records to choose cleaning rules, then report the before-and-after effects of each applied rule.
