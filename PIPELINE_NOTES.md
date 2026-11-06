@@ -681,6 +681,142 @@ The source data and earlier preparation validations ran again before EDA. No mod
 
 **Commit status** — Pending user review and commit.
 
+## Complete topic Historical features targets and chronological partitions
+
+**Notebook location** — Section 5, configuration and subsections 5.1 through 5.6.
+
+**Purpose** — Define a reproducible business prediction time, build historical-only inputs, create future labels, and establish fair partitions for both retention and recommendation.
+
+### Decisions and operating scope
+
+- Working observation boundary is 1 September 2018, exclusive, because the later source months are sparse. This is a documented completeness assumption to revisit in sensitivity analysis.
+- Use item-bearing placed orders. Final delivery status is excluded from event eligibility, avoiding a future outcome as a historical filter.
+- Another placed order is the target event, including a later-canceled order with line items. This measures future placed-order activity.
+- Assign one snapshot 30 days after each customer's first observed placed purchase. Predict an order strictly after that snapshot and within the next 90 days.
+- Require the full outcome window to end before the observation boundary. Incomplete follow-up is excluded from the labeled cohort.
+- The fixed-age retention task supports scoring at that customer age. Applying it at arbitrary ages would require a broader snapshot design and new evaluation.
+- Checkout amounts and product identifiers are treated as order-time observations. Review answers use their recorded timestamps as availability proxies. Later edits cannot be reconstructed from the static CSV snapshot.
+
+### Snapshot and label measurements
+
+| measure | count |
+| --- | --- |
+| Customers with an observed item-bearing order | 95420 |
+| Snapshots meeting start and complete-follow-up rules | 71105 |
+| Eligible snapshots with a future repeat order | 665 |
+
+The EDA repeat percentages use different event eligibility and follow-up origins. They should not be compared as if they were the same target.
+
+### Historical feature definitions
+
+| Feature | Formula or definition | Availability rule |
+|---|---|---|
+| recency_days | Days from snapshot to latest historical placed purchase | Purchase is at or before snapshot |
+| historical_order_count | Distinct historical order identifiers | Purchase is at or before snapshot |
+| distinct_products | Distinct product IDs across historical item rows | Item's order is in historical orders |
+| distinct_sellers | Distinct seller IDs across historical item rows | Item's order is in historical orders |
+| log1p_merchandise_spend | Natural logarithm of one plus historical item-price total | Amounts from historical orders only |
+| log1p_average_order_value | Natural logarithm of one plus mean historical merchandise order value | One observation per historical order |
+| freight_ratio | Historical freight total divided by historical merchandise value | Both totals from historical orders |
+| known_review_count | Number of first eligible order reviews known by snapshot | Answer time is at or before snapshot |
+| mean_known_review_score | Mean score across those known reviews | Unavailable mean remains missing |
+| known_delivery_count | Count of customer deliveries recorded by snapshot | Delivery is by snapshot and at or after purchase |
+| mean_known_delivery_days | Mean purchase-to-delivery duration across known deliveries | Unavailable mean remains missing |
+| customer_state | State on earliest observed historical order | Uses only the customer's historical order records |
+
+Identifiers, raw final status, future_order_count, repeat_90d, outcome_end, and audit timestamps stay outside the explicit model predictor lists. Customer age is constant at 30 days by design, so it is omitted from the features.
+
+The log1p transform is a fixed arithmetic operation. It fits no distribution parameters. Imputation, encoding, scaling, class weights, and models will be learned from training data in the baseline topic.
+
+### Retention partitions and maturation gaps
+
+Training outcome windows must end before 1 November 2017, the validation prediction start. Validation snapshots start on that date and must have outcomes ending before 1 April 2018, the test prediction start. Test snapshots start in April and must retain complete 90-day follow-up before the working boundary.
+
+| partition | customers | repeat_customers | repeat_percent | first_snapshot | last_snapshot | latest_outcome_end |
+| --- | --- | --- | --- | --- | --- | --- |
+| train | 14362 | 140 | 0.975 | 2017-01-22 23:16:47 | 2017-08-02 23:50:35 | 2017-10-31 23:50:35 |
+| validation | 11768 | 97 | 0.824 | 2017-11-01 00:28:03 | 2017-12-31 23:54:03 | 2018-03-31 23:54:03 |
+| test | 14213 | 120 | 0.844 | 2018-04-01 00:07:09 | 2018-06-02 23:59:21 | 2018-08-31 23:59:21 |
+
+Snapshots excluded from the primary comparison in the maturation gaps — 30,762.
+
+
+Customers have one assigned snapshot, so customer IDs are disjoint across these primary partitions. The gaps deliberately prevent outcomes from a later evaluation period from entering earlier training labels.
+
+Positive counts are 140, 97, and 120 in train, validation, and test. The rare class and small counts constrain tuning and require uncertainty reporting. High majority-class accuracy alone would be insufficient evidence.
+
+### Recommendation event and candidate protocol
+
+Use user, item, order_id, and time from item-bearing placed-order events. Maintain source events and deduplicated customer-product pairs separately.
+
+Validation history ends before 1 April 2018, with a future window ending before 1 May. Final test history ends before 1 June, with a future window ending before 1 July. Final fitting may use prior validation-period interactions once settings are selected, while test-future interactions remain held out.
+
+Candidates are products observed in history. Eligible relevance consists of future customer-product pairs where the customer has historical purchases, the product is in the historical candidate catalog, and the same pair was not already observed.
+
+| partition | history_pairs | candidate_products | future_customers | future_unique_pairs | cold_customer_pairs | unseen_catalog_pairs | already_purchased_pairs | eligible_relevance_pairs | eligible_ranking_customers |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| validation | 68203 | 22964 | 6878 | 7210 | 7023 | 2497 | 26 | 97 | 90 |
+| test | 82461 | 26895 | 6121 | 6394 | 6187 | 2243 | 29 | 102 | 97 |
+
+Cold-user pairs, unseen-catalog pairs, and already-purchased pairs are reported as separate diagnostics. Categories can overlap. Most future activity is from cold users. Only 90 validation and 97 test customers have positive eligible warm-discovery relevance. Report this limited benchmark population alongside application fallbacks and coverage.
+
+Unobserved pairs are unknown, and no dislike labels or artificial explicit ratings are created. No minimum of five interactions is imposed on historical customers.
+
+### Code and method reference
+
+| Code or method | Explanation and reason |
+|---|---|
+| pd.Timestamp | Stores explicit chronological boundaries. |
+| pd.Timedelta | Adds the fixed customer age or future outcome horizon. |
+| .lt, .le, .gt, .ge | Makes inclusive and exclusive time rules explicit. |
+| .groupby(...).min() | Finds each customer's first observed placed purchase. |
+| .rename(...).to_frame() | Gives the first-purchase series a named table representation. |
+| .merge(..., validate='many_to_one') | Links many events to one customer snapshot or order record while checking parent uniqueness. |
+| .merge(..., validate='one_to_one') | Checks uniqueness when combining customer-level feature blocks. |
+| .nunique() | Counts distinct orders, products, or sellers at the intended grain. |
+| .map(future_counts).fillna(0) | Assigns a zero future-order count only to snapshots with complete follow-up and no observed qualifying order. |
+| .gt(0).astype(int) | Creates the binary repeat target from future order counts. |
+| .sort_values(...) | Gives earliest-state selection a reproducible historical ordering. |
+| .agg(...) | Creates explicit order, breadth, and known-event summaries. |
+| .where(availability_mask) | Keeps review or delivery values only when available by the snapshot, representing other values as missing. |
+| .count() | Counts observed known-event values, excluding missing values. |
+| .mean() | Averages only observed eligible historical values. |
+| np.log1p | Applies the fixed log transform to nonnegative historical monetary values. |
+| RETENTION_FEATURES | Declares the exact predictor allowlist used to create X matrices. |
+| X_train and y_train | Hold training predictors and labels with aligned row indices. |
+| X_validation and X_test | Preserve chronological holdouts for later tuning and final evaluation. |
+| build_recommendation_window | Reuses one candidate and relevance protocol for validation and test. |
+| .drop_duplicates() | Creates one row per customer-product pair without assigning ratings. |
+| history_pairs.assign(...) | Marks previously observed pairs for a validated future-pair lookup. |
+| .isin(...) | Checks whether future users and products exist in history. |
+| .eq(True) | Converts matched history markers into the already-purchased flag. |
+| .isdisjoint(...) | Verifies that no customer occurs in multiple primary retention partitions. |
+| np.isinf(...) | Checks numeric matrices for invalid infinite results while allowing missing means for later imputation. |
+| .sample(..., random_state=42) | Selects reproducible positive and negative records for independent source-event label checks. |
+
+### Model-ready in-memory objects
+
+- retention_dataset contains features, labels, and audit fields.
+- retention_partitions holds the three chronological customer cohorts.
+- X_train, X_validation, and X_test contain only the declared predictors.
+- y_train, y_validation, and y_test contain the repeat_90d label.
+- recommendation_partitions contains history events, historical pairs, candidates, future windows, coverage annotations, and positive discovery relevance.
+- The notebook regenerates these objects. Model artifact saving and application integration belong to later topics.
+
+### Verification
+
+Executed all 36 notebook code cells in order using in-process IPython, with the prior cleaning checks and EDA still producing their saved outputs.
+
+Verified customer uniqueness, historical feature availability, complete target follow-up, future event intervals, disjoint customer IDs, label maturation, predictor allowlists, finite numeric inputs, and both target classes in each retention partition. Independently recomputed labels and future order counts for 50 positive and 50 negative sampled snapshots from the source event times.
+
+For each recommendation window, verified historical and future event boundaries, candidate uniqueness, known-user and known-product relevance, absence of previously purchased relevance pairs, and a nonempty eligible cohort.
+
+**Topic commit message** — `feat: define historical features repeat targets and temporal splits`.
+
+**Files in the same contribution** — `olist_pipeline.ipynb`, `PIPELINE_NOTES.md`, and `README.md`.
+
+**Commit status** — Pending user review and commit.
+
 ## Next notebook topic
 
-Define historical customer snapshots, feature formulas, repeat-purchase labels, recommendation interactions, and chronological train, validation, and test partitions. Develop that topic with its reference notes as one contribution.
+Build training-fitted preprocessing and baseline models. Begin with a retention dummy baseline and Logistic Regression, plus a popularity recommendation baseline evaluated under the fixed candidate and relevance protocol. Document models, metrics, coverage, and results together.

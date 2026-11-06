@@ -10,9 +10,13 @@ The project corresponds to catalog topic 9.2, Tier A E-commerce Recommendation.
 
 ## Current status
 
-Data inspection, cleaning, and EDA are complete. The notebook includes executed preparation checks, nine embedded EDA figures, descriptive summaries, and interpretation. Behavioral EDA uses 96,478 delivered orders with item records, representing 93,358 customers. Feature engineering, target definitions, and chronological evaluation partitions are next, followed by model development and the application. The application framework and chatbot technology remain to be selected.
+Data inspection, cleaning, EDA, and historical feature and split preparation are complete. The notebook includes executed preparation checks, nine EDA figures, and validated model inputs. Behavioral EDA uses 96,478 delivered orders with item records, representing 93,358 customers. Baseline modeling and training-fitted preprocessing are next. The application framework and chatbot technology remain to be selected.
 
 The EDA finds a 3.00 percent observed repeat-buyer share and 99.99668 percent customer-product interaction sparsity in the stated delivered cohort. In the provisional 90-day follow-up cohort, 1,714 of 75,320 eligible customers repeat within the window. These are descriptive feasibility findings. Cohort coverage and prediction timing will be finalized before modeling.
+
+The initial retention task now scores customers 30 days after their first observed item-bearing placed order and predicts another placed order within the next 90 days. It uses an exclusive working observation boundary of 1 September 2018. Chronological cohorts contain 14,362 training customers with 140 positives, 11,768 validation customers with 97 positives, and 14,213 test customers with 120 positives. Customer IDs are disjoint, and label-maturation gaps are excluded. This target differs from the descriptive EDA cohort.
+
+Warm-customer recommendation validation and test use fixed 30-day future windows and historical candidate catalogs. There are 90 eligible validation customers and 97 eligible test customers with previously unseen future products. Report this limited ranking population alongside cold-start behavior and coverage. The fixed-age retention decision and coverage boundary are explicit design choices, with sensitivity and uncertainty to be discussed during evaluation.
 
 Open [the project notebook](olist_pipeline.ipynb) in VS Code, select a Python Jupyter kernel with pandas installed, and run the cells from top to bottom with the repository root as the working directory. The initial section includes saved outputs from execution against the local CSVs.
 
