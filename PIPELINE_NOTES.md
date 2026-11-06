@@ -817,6 +817,128 @@ For each recommendation window, verified historical and future event boundaries,
 
 **Commit status** — Pending user review and commit.
 
+## Complete topic Training-fitted preprocessing and baseline models
+
+**Notebook location** — Section 6, subsections 6.1 through 6.4 and baseline validation checks.
+
+**Purpose** — Establish initial validation reference performance for future repeat-order classification and product discovery, using permitted training data only.
+
+### How the two provided notebooks inform this work
+
+| Source | Actual adaptation in our notebook | Remaining source-inspired work |
+|---|---|---|
+| eda-satisfaction-prediction-nlp-rfm-deployment.ipynb | Data-preparation and EDA workflow, customer RFM concepts, Pipeline and ColumnTransformer structure, median imputation, scaling, categorical encoding, and classification workflow | Comparative classifiers, justified customer segmentation, and deployment. Review-text NLP is optional |
+| Week10_Project_Starter_Template (1).ipynb | Recommender progression, historical popularity, seen-item exclusion, Precision at K, Recall at K, NDCG at K, basic cold-user and short-history checks | Content-based and collaborative methods, SVD, hybrid comparison, extended cold-start experiments, collaborative by-hand calculation, deliberate leakage experiment, and full understanding logs |
+
+The Kaggle reference classifies satisfaction and also analyzes review text. Our supervised target is future repeat-order activity under the explicit customer-age and follow-up rules. Its reported scores therefore measure a different task.
+
+The source Kaggle RFM example counts product rows and sums payments in a merged table. Our feature pipeline counts distinct orders and aggregates item and payment tables separately before order-level joins. Our historical features use snapshot cutoffs.
+
+The starter helpers illustrate explicit-rating workflows, including dense matrices and a rating relevance threshold. Our implementation uses binary purchase relevance and chronological candidate catalogs, with count-based popularity and on-demand recommendation lists.
+
+Both notebooks are references and attributions for the implemented adaptations. They remain preserved under SOURCE FILES. The reference-use map near the notebook introduction identifies the actual current use and pending methods.
+
+### Retention preprocessing and fitting
+
+Numeric features use training medians with missingness indicators, followed by StandardScaler. State uses an explicit missing category and OneHotEncoder with unknown-category handling. ColumnTransformer applies only the predictor allowlist and drops other fields. The full preprocessing and Logistic Regression sequence is one fitted Pipeline.
+
+Fit Logistic Regression using the 14,362 training snapshots with 140 positives. Its fixed initial regularization is C=1, with up to 2,000 iterations and random_state=42. The fit converged in 27 iterations. No sampling or class weighting was introduced in this baseline. The encoded validation representation has 40 columns.
+
+The prior DummyClassifier learns only the training label prevalence. A constant one-column input makes that lack of feature dependence explicit.
+
+### Retention validation measurements
+
+| model | average_precision | roc_auc | brier_score | precision_at_0_5 | recall_at_0_5 | f1_at_0_5 | predicted_positives |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Training prior | 0.008243 | 0.5 | 0.008177 | 0.0 | 0.0 | 0.0 | 0 |
+| Logistic Regression | 0.016882 | 0.515552 | 0.00819 | 0.0 | 0.0 | 0.0 | 0 |
+
+Evaluate all 11,768 validation customers with 97 positives. At threshold 0.5, both models classify every validation customer as non-repeat, giving 11,671 true negatives and 97 false negatives.
+
+Logistic average precision is 0.016882 compared with prior average precision 0.008243. ROC-AUC is 0.515552, showing weak overall discrimination. Its Brier score of 0.008190 is slightly worse than the prior's 0.008177. These are initial validation benchmarks. Class imbalance, fixed-age features, and small positive counts limit conclusions.
+
+The precision-recall and ROC curves are saved in the notebook. Threshold selection is deferred until model comparison and an explicit decision policy. Final test predictions have not been generated in this topic.
+
+### Historical popularity recommendation
+
+Use distinct historical buyer counts from the 68,203 pre-validation customer-product pairs. The candidate catalog contains 22,964 products. Sort by buyer count descending, then product identifier ascending for deterministic ties.
+
+recommend_popular excludes previously purchased products and returns product ID, category label, and historical buyer count. New users receive the same historical popularity fallback. Metadata-only new products have no evidence for this baseline.
+
+Top-K metric formulas adapt the Week 10 helper cell. Precision uses K as its denominator, recall uses the relevant future discovery set, and NDCG normalizes discounted hits by the ideal arrangement. Duplicate recommendation IDs are rejected by the metric helper.
+
+### Ranking validation measurements
+
+| k | users | precision | recall | ndcg | hit_rate |
+| --- | --- | --- | --- | --- | --- |
+| 5 | 90 | 0.002222 | 0.011111 | 0.005556 | 0.011111 |
+| 10 | 90 | 0.002222 | 0.022222 | 0.009061 | 0.022222 |
+
+Catalog coverage at ten recommendations across evaluated users — 0.0479 percent.
+
+
+Only 90 validation users have eligible warm-discovery relevance. The top-five baseline hits one user's future relevant item, and the top-ten baseline hits two users. Cold customers and unseen catalog products are outside this warm-ranking metric. Their counts remain visible in the partition coverage audit.
+
+### Conditional bootstrap uncertainty
+
+| metric | lower_95 | upper_95 | resamples |
+| --- | --- | --- | --- |
+| Logistic validation average precision | 0.008922 | 0.044339 | 300 |
+| Popularity validation NDCG at 5 | 0.0 | 0.016667 | 1000 |
+
+Resample retention validation customers 300 times for an average-precision percentile interval. Resample the 90 per-user NDCG at five values 1,000 times for a ranking interval. Use random generator seed 42. These intervals condition on the current fitted model and observed cohort. They do not measure training variability, future temporal changes, or cold-population performance.
+
+The final repeated-run and literature benchmark comparison remains pending with comparative modeling and tuning.
+
+### Code and method reference
+
+| Code or method | Explanation and reason |
+|---|---|
+| SimpleImputer(strategy='median', add_indicator=True) | Learns numeric medians from training and exposes the missingness pattern. |
+| keep_empty_features=True | Preserves the numeric schema if a training feature is entirely missing. |
+| StandardScaler | Learns numeric location and scale from the training representation. |
+| OneHotEncoder(handle_unknown='ignore') | Learns state categories from training and handles a new state at prediction time. |
+| ColumnTransformer(remainder='drop') | Uses only the declared numeric and categorical features. |
+| Pipeline | Fits and reuses preprocessing and classifier as one object. |
+| LogisticRegression(C=1.0, max_iter=2000) | Defines the fixed initial regularized classifier. |
+| .fit(X_train, y_train) | Learns transformations and classifier parameters from training only. |
+| DummyClassifier(strategy='prior') | Learns the training class proportions without feature-based discrimination. |
+| .predict_proba(...)[:, 1] | Gets the repeat-class probability for validation. |
+| average_precision_score | Summarizes positive-case ranking using precision and recall. |
+| roc_auc_score | Measures ordering across positive and negative cases. |
+| brier_score_loss | Measures squared probability error. |
+| probability >= 0.5 | Defines the initial thresholded classification policy. |
+| zero_division=0 | Reports zero precision or F1 when the model predicts no positive cases. |
+| confusion_matrix(labels=[0,1]) | Makes negative and positive class ordering explicit. |
+| precision_recall_curve and roc_curve | Generate the plotted validation trade-offs. |
+| .groupby('item').size() on distinct pairs | Counts each historical buyer once per product. |
+| .sort_values(..., ascending=[False,True]) | Gives reproducible popularity ranking and tie breaking. |
+| .agg(set).to_dict() | Builds customer histories and future relevance sets. |
+| recommend_popular(user,n) | Produces an on-demand top-N list excluding already purchased products. |
+| top_k_metrics | Computes binary purchase Precision, Recall, NDCG, and hit rate. |
+| 1 / log2(rank + 1) | Discounts lower-ranked hits in NDCG, with rank starting at one. |
+| np.random.default_rng(42) | Makes bootstrap resampling reproducible. |
+| rng.integers and rng.choice | Resample customers or per-user metric values with replacement. |
+| np.quantile(..., [0.025,0.975]) | Obtains the percentile interval endpoints. |
+| np.testing.assert_allclose | Verifies fitted medians and prior probabilities against training-derived values. |
+| n_samples_seen_ | Checks that scaling was fitted with the training row count. |
+
+### Verification and notebook status
+
+Executed all 43 code cells in order with in-process IPython. Validated the notebook schema, previous preparation checks, and nine existing EDA figures, plus the new validation curve figure.
+
+Verified imputer values equal training medians, scaler fit counts match training size, and encoded states equal the training state set. Checked model convergence, finite transformed validation data, valid probabilities, and the prior average-precision identity.
+
+Validated ranking formulas on a small by-hand example. For every evaluated user, checked unique recommendations, historical candidate membership, and seen-product exclusion. Exercised new-user and single-history fallback behavior.
+
+The toy metric check is an integrity test. The full collaborative by-hand example requires the future collaborative model. Extended new-item handling requires content-based features.
+
+**Topic commit message** — `feat: add training-only preprocessing and validated baseline models`.
+
+**Files in the same contribution** — `olist_pipeline.ipynb`, `PIPELINE_NOTES.md`, `README.md`, and `requirements.txt`.
+
+**Commit status** — Pending user review and commit.
+
 ## Next notebook topic
 
-Build training-fitted preprocessing and baseline models. Begin with a retention dummy baseline and Logistic Regression, plus a popularity recommendation baseline evaluated under the fixed candidate and relevance protocol. Document models, metrics, coverage, and results together.
+Compare additional retention models and implement content-based recommendations under the established validation protocol. Develop model comparisons, error interpretation, and reference notes together. Keep final test performance reserved until configuration and tuning choices are locked.

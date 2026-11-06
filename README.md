@@ -10,7 +10,11 @@ The project corresponds to catalog topic 9.2, Tier A E-commerce Recommendation.
 
 ## Current status
 
-Data inspection, cleaning, EDA, and historical feature and split preparation are complete. The notebook includes executed preparation checks, nine EDA figures, and validated model inputs. Behavioral EDA uses 96,478 delivered orders with item records, representing 93,358 customers. Baseline modeling and training-fitted preprocessing are next. The application framework and chatbot technology remain to be selected.
+Data inspection, cleaning, EDA, historical features, temporal partitions, and baseline modeling are complete. The notebook has 43 executed code cells, nine EDA figures, and a retention validation curve figure. Completed baselines include training-only preprocessing, a prior classifier, Logistic Regression, and historical popularity recommendations. Behavioral EDA uses 96,478 delivered orders with item records and 93,358 customers. Comparative modeling and personalized recommenders are next. The application framework and chatbot technology remain to be selected.
+
+Initial validation Logistic Regression has average precision 0.016882 and ROC-AUC 0.515552, compared with prior average precision 0.008243. Overall discrimination is weak, and both classifiers predict zero positives at the initial 0.5 threshold. Popularity has Recall at 5 of 0.011111 and NDCG at 5 of 0.005556 across 90 eligible warm-validation customers. These are starting benchmarks. Final test performance remains reserved for the later locked comparison.
+
+Both supplied notebooks are used as references. The Kaggle notebook informs preparation, EDA, RFM concepts, and preprocessing pipelines. The Week 10 starter informs recommendation progression, popularity, ranking metrics, and understanding checks. A reference-use map near the start of our notebook identifies implemented adaptations and pending methods. Content-based, collaborative, SVD, hybrid, and full understanding-pack work remains on the roadmap, followed by the application and chatbot.
 
 The EDA finds a 3.00 percent observed repeat-buyer share and 99.99668 percent customer-product interaction sparsity in the stated delivered cohort. In the provisional 90-day follow-up cohort, 1,714 of 75,320 eligible customers repeat within the window. These are descriptive feasibility findings. Cohort coverage and prediction timing will be finalized before modeling.
 
