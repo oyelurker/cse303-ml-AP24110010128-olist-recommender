@@ -819,7 +819,7 @@ For each recommendation window, verified historical and future event boundaries,
 
 ## Complete topic Training-fitted preprocessing and baseline models
 
-**Notebook location** — Section 6, subsections 6.1 through 6.4 and baseline validation checks.
+**Notebook location** — Section 6 and baseline validation checks, with supplementary uncertainty in Appendix A.
 
 **Purpose** — Establish initial validation reference performance for future repeat-order classification and product discovery, using permitted training data only.
 
@@ -879,7 +879,7 @@ Catalog coverage at ten recommendations across evaluated users — 0.0479 percen
 
 Only 90 validation users have eligible warm-discovery relevance. The top-five baseline hits one user's future relevant item, and the top-ten baseline hits two users. Cold customers and unseen catalog products are outside this warm-ranking metric. Their counts remain visible in the partition coverage audit.
 
-### Conditional bootstrap uncertainty
+### Conditional bootstrap uncertainty as supplementary material
 
 | metric | lower_95 | upper_95 | resamples |
 | --- | --- | --- | --- |
@@ -939,6 +939,178 @@ The toy metric check is an integrity test. The full collaborative by-hand exampl
 
 **Commit status** — Pending user review and commit.
 
+## Complete topic Neighbors decision trees and ID3
+
+**Syllabus mapping** — Unit II, distance-measures Lab 4, KNN Lab 5, and ID3 Lab 6.
+
+**Notebook location** — Section 7, including the KNN worked example and the ID3 root calculation.
+
+**Purpose** — Compare a small set of syllabus configurations, understand locality and tree complexity, and distinguish a library CART model from categorical ID3.
+
+### Configurations and shared evaluation
+
+Use the existing 14,362 training customers and 11,768 validation customers. Preserve the rare-class distribution. KNN configurations use K=5 and K=15, uniform voting, Euclidean distance, and training-fitted numeric scaling.
+
+The tree configurations use entropy, maximum depths 3 and 6, and at least 50 training samples per leaf. Numeric scaling is passed through for trees, while training-fitted imputation and state encoding remain. This keeps thresholds in prepared feature units, including previously defined log monetary values.
+
+Clone the preprocessing definitions for each estimator. Clone resets learned state. Every candidate fits only on X_train and y_train. Reuse repeat_classification_metrics so baseline and new classifier comparisons use the same metrics and 0.5 threshold.
+
+### Training and validation results
+
+| model | average_precision | roc_auc | precision_at_0_5 | recall_at_0_5 | f1_at_0_5 | predicted_positives | training_average_precision | validation_customers |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| KNN k=5 | 0.008216 | 0.49825 | 0.0 | 0.0 | 0.0 | 0 | 0.215187 | 11768 |
+| KNN k=15 | 0.008963 | 0.52969 | 0.0 | 0.0 | 0.0 | 0 | 0.074084 | 11768 |
+| Tree depth=3 | 0.007915 | 0.471039 | 0.0 | 0.0 | 0.0 | 0 | 0.019506 | 11768 |
+| Tree depth=6 | 0.007718 | 0.467589 | 0.0 | 0.0 | 0.0 | 0 | 0.03275 | 11768 |
+
+KNN K=5 has optimistic in-sample average precision of 0.215187 and validation average precision of 0.008216. Training queries can include themselves. K=15 reduces the apparent gap, with validation ROC-AUC 0.529690 and average precision 0.008963.
+
+The depth-six tree has higher training average precision than depth three, with slightly lower validation performance. In this fixed comparison, additional tree complexity does not improve validation quality.
+
+The existing Logistic Regression baseline retains the highest validation average precision among these library candidates, at approximately 0.016882. Its overall ROC-AUC remains weak. The model comparison is still in progress.
+
+### Validation error counts
+
+| model | true_negative | false_positive | false_negative | true_positive | maximum_repeat_probability |
+| --- | --- | --- | --- | --- | --- |
+| KNN k=5 | 11671 | 0 | 97 | 0 | 0.4 |
+| KNN k=15 | 11671 | 0 | 97 | 0 | 0.2 |
+| Tree depth=3 | 11671 | 0 | 97 | 0 | 0.072993 |
+| Tree depth=6 | 11671 | 0 | 97 | 0 | 0.113924 |
+
+All four configurations predict no repeat cases at 0.5, yielding 97 false negatives and zero true positives in validation. Their scores vary, but their maximum scores are below that decision threshold. Threshold selection belongs to the later model-selection and decision-policy topic.
+
+Changing a fixed threshold changes precision, recall, F1 and confusion counts. It does not improve the underlying probability ranking measured by average precision or ROC-AUC.
+
+### KNN worked example
+
+The example is deliberately selected as the highest-scored validation customer under the K=5 model. It illustrates mechanics rather than a typical customer.
+
+| neighbor_rank | euclidean_distance | independent_distance | training_repeat_label |
+| --- | --- | --- | --- |
+| 1 | 1.05851 | 1.05851 | 1 |
+| 2 | 1.085889 | 1.085889 | 0 |
+| 3 | 1.16392 | 1.16392 | 0 |
+| 4 | 1.253343 | 1.253343 | 0 |
+| 5 | 1.378057 | 1.378057 | 1 |
+
+Two neighbor labels are positive and three are negative. Uniform repeat score is 2 / 5 = 0.4. The library returns 0.4 for the same query, and the query's observed validation label is zero.
+
+Euclidean distance is the square root of the sum of squared coordinate differences. Independently calculated distances over the transformed numeric and one-hot features match the library's five distances.
+
+### Read the CART tree
+
+The saved tree plot shows the upper two levels of the depth-three tree. Read each threshold, entropy, sample count and ordered class count. The displayed model uses entropy-based binary threshold splits. A log1p monetary threshold t corresponds to original monetary value exp(t) - 1.
+
+Scikit-learn's tree implementation is CART. Choosing its entropy criterion does not turn it into ID3.
+
+### Categorical ID3 example
+
+Use three declared historical attributes on the same customer cohorts.
+
+- order_history is one_order or multiple_orders.
+- known_review is unknown, score_1_to_3, or score_4_to_5.
+- known_delivery is unknown, up_to_10_days, or over_10_days.
+
+The fixed bins are teaching choices. The example has a different feature representation from the 12-input library models, so its results cannot isolate an algorithm-only effect.
+
+The recursive implementation stores sample count, training repeat proportion, selected attribute and branches. Stop when labels are pure, attributes are exhausted, or no positive information gain remains. Otherwise select the highest-gain attribute, create branches for its categorical values, and recurse after removing it from the remaining attributes.
+
+Prediction follows those branches. An unseen categorical value returns the current node's training class proportion. These leaf proportions are empirical scores.
+
+### ID3 root information gains
+
+| attribute | information_gain |
+| --- | --- |
+| order_history | 0.000593 |
+| known_review | 6.9e-05 |
+| known_delivery | 3e-06 |
+
+### Worked root calculation
+
+| branch | non_repeat | repeat | samples | entropy_bits | weight | weighted_entropy |
+| --- | --- | --- | --- | --- | --- | --- |
+| multiple_orders | 274 | 10 | 284 | 0.219888 | 0.019774 | 0.004348 |
+| one_order | 13948 | 130 | 14078 | 0.075673 | 0.980226 | 0.074177 |
+
+The selected root is order_history. Parent entropy is 0.07911751 bits. Weighted child entropy is 0.07852473 bits. Their difference is information gain of 0.00059278 bits.
+
+The parent has 14,222 non-repeat labels and 140 repeat labels. Its low entropy reflects class imbalance. The multiple-orders branch contains 274 non-repeat and 10 repeat labels. The one-order branch contains 13,948 non-repeat and 130 repeat labels.
+
+For binary labels, entropy H equals -p0 log2(p0) - p1 log2(p1), with zero-probability contributions treated as zero. Gain equals parent entropy minus the sum of each child's entropy weighted by its fraction of training samples.
+
+### ID3 validation result
+
+| model | average_precision | roc_auc | precision_at_0_5 | recall_at_0_5 | f1_at_0_5 | predicted_positives |
+| --- | --- | --- | --- | --- | --- | --- |
+| Teaching ID3 with 3 categorical attributes | 0.012043 | 0.527934 | 0.0 | 0.0 | 0.0 | 0 |
+
+The ID3 representation has validation ROC-AUC about 0.527934 and average precision 0.012043. Its current role is a course learning example with weak predictive discrimination. Application model selection follows the full comparison.
+
+### Code and method reference
+
+| Code or method | Explanation and reason |
+|---|---|
+| clone(preprocessing) | Creates an unfitted estimator with the same configuration. |
+| set_params(numeric__scaler='passthrough') | Leaves numeric tree inputs in their prepared units. |
+| KNeighborsClassifier | Stores training examples for distance-based neighbor voting. |
+| n_neighbors | Chooses how many nearest labels contribute to the vote. |
+| weights='uniform' | Gives each chosen neighbor one equal vote. |
+| metric='euclidean' | Uses the square root of summed squared coordinate differences. |
+| algorithm='brute' | Evaluates distances directly for the sparse encoded representation. |
+| config_context(working_memory=128) | Bounds computation work buffers without changing the mathematical distance definition. |
+| DecisionTreeClassifier(criterion='entropy') | Fits an entropy-based CART classifier. |
+| max_depth | Limits the number of split levels. |
+| min_samples_leaf | Requires a minimum number of training rows in each leaf. |
+| predict_proba | Returns class scores or learned class proportions. |
+| repeat_classification_metrics | Shares the same validation measurements across baseline and new classifiers. |
+| confusion_matrix(...).ravel() | Reads true negatives, false positives, false negatives and true positives in the stated class order. |
+| kneighbors | Returns the nearest training positions and distances for the worked query. |
+| .toarray() | Converts only the small worked-example vectors for independent distance calculation. |
+| get_feature_names_out | Gets the fitted numeric and one-hot names for the tree diagram. |
+| plot_tree(max_depth=2) | Displays a readable upper portion of the fitted tree. |
+| np.select | Applies the declared categorical teaching bins, including unknown cases. |
+| value_counts(normalize=True) | Calculates class proportions used by entropy. |
+| np.log2 | Measures entropy contributions in bits. |
+| categorical_information_gain | Subtracts weighted child entropy from parent entropy. |
+| fit_id3 | Recursively selects categorical attributes by information gain. |
+| remaining attributes | Prevents repeatedly selecting an already used attribute on the same path. |
+| id3_probability | Traverses learned branches and handles unseen values using node training prevalence. |
+
+### Viva questions and short answers
+
+1. Why scale for KNN? Euclidean distance depends on coordinate magnitude, so unscaled monetary values could dominate other inputs.
+2. What changes when K increases? Voting averages a broader neighborhood, reducing sensitivity to individual examples while potentially smoothing away a rare class.
+3. Why can KNN training scores look good? In-sample queries can include their own stored examples and are not independent evaluation.
+4. What is entropy? A measure of uncertainty in the label distribution. Pure labels have zero entropy.
+5. What is information gain? The reduction in entropy after a split, weighted by branch sizes.
+6. How do we limit a tree? Set a maximum depth and a minimum leaf sample count, then check validation performance.
+7. Is our library tree ID3? It is CART with entropy. The separate recursive example implements categorical ID3.
+8. Why are the ID3 results a separate teaching comparison? It uses three coarsened attributes rather than the library models' full prepared representation.
+9. What happens for an unseen categorical value? The implementation returns the current node's training class proportion.
+10. Why do all these models return negative decisions at 0.5? Their estimated repeat scores remain below 0.5 in this rare-event cohort.
+11. Can lowering the threshold fix ranking quality? It changes decisions and error trade-offs. Ranking quality still needs separate evaluation.
+12. Why is the next step another topic? Course recommender methods address product discovery using a different representation and evaluation protocol.
+
+### Verification and topic completion
+
+Executed all 51 code cells in order using in-process IPython. Twelve figures are embedded, including the two new comparison and tree figures. Visually inspected both new figures.
+
+Verified every fitted imputer uses training medians and every state encoder uses the training state set. Checked KNN scaler fit counts, tree depth and leaf constraints, finite probability ranges, model result counts and cohort alignment.
+
+The worked KNN vote and independent distances matched the library. ID3 checks covered pure-label entropy, balanced-label entropy, a perfect categorical split, a no-gain constant attribute, the root gain calculation and unseen-value fallback. Final test scoring remains reserved.
+
+Moved existing bootstrap output and Brier reporting to supplementary Appendix A in the notebook. Baseline result variables are preserved for compatibility, while primary displayed comparisons focus on course-relevant metrics.
+
+The syllabus scope is now the working implementation guide. SVD, advanced boosting libraries, SHAP, advanced NLP and LLM-training extensions remain outside the core implementation path.
+
+**Topic commit message** — `feat: compare KNN and trees with ID3 viva examples`.
+
+**Files in the same contribution** — `olist_pipeline.ipynb`, `PIPELINE_NOTES.md`, `README.md`, `PROJECT_PLAN.md`, and the scope guide `SYLLABUS_ALIGNMENT.md`.
+
+**Commit status** — Pending user review and commit.
+
 ## Next notebook topic
 
-Compare additional retention models and implement content-based recommendations under the established validation protocol. Develop model comparisons, error interpretation, and reference notes together. Keep final test performance reserved until configuration and tuning choices are locked.
+Implement the syllabus content-based and item-based collaborative recommenders, compare them with popularity under the established validation protocol, and add understandable cold-start behavior and worked examples. Develop that topic and its reference notes together.

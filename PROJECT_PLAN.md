@@ -1,5 +1,7 @@
 # Olist Recommendation and Customer Retention Project Plan
 
+Follow [the syllabus comparison and viva walkthrough](SYLLABUS_ALIGNMENT.md) when selecting methods. It defines the course-aligned scope, manageable supporting extensions, supplementary material, and learning sequence for the next stages.
+
 ## Project overview
 
 Build an application using the Olist Brazilian E-Commerce dataset for catalog topic 9.2, Tier A E-commerce Recommendation. The application will combine product recommendations, repeat-purchase prediction, and a conversational assistant for exploring customer insights.
@@ -68,13 +70,13 @@ Represent purchases as implicit customer-product interactions for recommendation
 
 ### Repeat purchase prediction
 
-Start with a dummy baseline and Logistic Regression. Compare KNN, Decision Tree, Naive Bayes, SVM, and an ensemble such as Random Forest or XGBoost. Include the neural learning exercises and small ANN called for by the course, with their role and results documented.
+Start with a dummy baseline and Logistic Regression. Compare KNN, Decision Tree, Naive Bayes, SVM, and Random Forest. One simple boosting comparison is optional. Include compact neural learning exercises and a small ANN with their role and results documented. Explain the library tree as CART and use a separate categorical ID3 learning example for the lab-specific algorithm.
 
 Fit preprocessing and any imbalance handling on the training partition. Tune the strongest two models using validation data.
 
 ### Product recommendation
 
-Start with popularity recommendations. Compare content-based recommendations, item-based collaborative filtering using cosine similarity, and a sparse SVD baseline adapted to purchase interactions. Evaluate a hybrid if combining methods improves validation performance.
+Start with popularity recommendations. Compare content-based recommendations and item-based collaborative filtering using cosine similarity. Evaluate a simple weighted hybrid if it is understood and validation performance supports it. SVD and matrix factorization remain optional additions beyond the explicit syllabus list.
 
 Return up to five cross-sell suggestions for the proposed application, with historical purchases excluded under the stated discovery policy. Provide a documented fallback for customers with little or no history. Evaluate at five recommendations, and include metrics at ten where useful for comparison with the lab reference.
 
@@ -111,7 +113,7 @@ The proposed initial assistant will support these requests.
 - Answer supported customer and segment questions using computed data.
 - Draft an outreach message using the retrieved recommendations.
 
-Customer figures, predictions, and recommendations will come from the underlying functions. Responses will identify missing information and uncertainty. Choose the language model and integration approach after the supported requests and available resources are agreed.
+Customer figures, predictions, and recommendations will come from the underlying functions. Begin with a small set of supported requests and simple intent rules. Responses will identify missing information and uncertainty. An external language-model API can be considered later as an interface extension after the underlying requests work. Model training, RAG, and agent orchestration are outside the core scope.
 
 **Output** — A conversational interface connected to the verified pipeline.
 
@@ -133,4 +135,4 @@ Customer figures, predictions, and recommendations will come from the underlying
 
 ## Current status
 
-Planning and reference review are complete enough to guide the first notebook. Dataset validation, notebook development, model training, and application development are pending.
+Data preparation, EDA, historical targets and partitions, and baseline models are implemented. Comparative syllabus models are underway. The notebook, README, and pipeline notes record executed results and current progress. The application follows the verified model comparisons and evaluation.
