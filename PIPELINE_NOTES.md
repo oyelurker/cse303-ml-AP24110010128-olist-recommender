@@ -1792,6 +1792,199 @@ This topic uses the existing scikit-learn and SciPy dependencies. The Kaggle ref
 
 **Commit status** — Current segmentation topic left uncommitted. The preceding neural topic is present in commit `da395ad`. No staging or commit action was performed for this topic.
 
-## Next notebook topic
+## Topic 13 — Consolidated comparison, bounded tuning and feature ablation
 
-Consolidate comparable validation results and choose a small, explainable tuning exercise for the strongest justified models. Complete the remaining understanding checks and feature-analysis needs before freezing model and threshold choices. Only then score the reserved tests and extract the reusable application pipeline. Keep the application framework and bounded chatbot work after those decisions.
+### Purpose and notebook completion position
+
+The core notebook implementation is complete through data handling, EDA, historical labels, model families, recommendation methods, neural demonstrations and clustering. The remaining notebook work is evaluation and explanation rather than adding many more algorithms. Approximate completion percentages describe scope, not measured elapsed time or a ratio of code cells.
+
+This topic consolidates the validation comparison, tunes the two strongest initial classifier families by AP and tests one declared feature-removal hypothesis. Afterwards, remaining work is the understanding/robustness pack followed by locked test evaluation, conclusions and a final clean rerun. Application and chatbot work are separate.
+
+### Common evaluation and different representations
+
+Every classifier is evaluated on the same 11,768 validation customers with 97 repeat labels. Consolidate fourteen existing models and baselines into one table. AP and ROC-AUC accept ordered scores. Threshold metrics use probability 0.5 for probability-producing models and the native zero boundary for signed SVM margins.
+
+Keep score kind and representation in the table. GaussianNB uses eleven median-imputed numeric fields. The ID3 teaching model uses three coarse categorical attributes. Other pipelines generally use the numeric and state representation, with scaling appropriate to the classifier. A complete-pipeline comparison does not isolate the effect of the classifier when its representation also changes.
+
+The constant-prior model provides a compatible baseline for the same target and customers. The public source notebook's satisfaction-prediction and descriptive analysis scores concern different tasks and are not interchangeable benchmarks for this next-90-day repeat target.
+
+### Notebook blocks and sequence
+
+| Block | Work performed and reason |
+|---|---|
+| `consolidate-validation-classifiers` | Collects stored validation scores for fourteen existing methods. Applies the correct native decision boundary and builds a common AP/ROC-AUC/precision/recall/F1 table with representation labels. |
+| `tune-two-retention-families` | Clones Logistic Regression and numeric GaussianNB pipelines. Fits three declared parameter values for each using training rows only, then calculates validation metrics and training AP. |
+| `inspect-and-ablate-spend-feature` | Computes numeric correlations from training rows only. Removes log average order value in one Logistic Regression ablation, using the best C from the limited logistic comparison. |
+| `nominate-model-and-inspect-thresholds` | Ranks the six tuning fits and one ablation, nominates a provisional candidate and reports five fixed probability-threshold scenarios. Plots AP comparisons and threshold trade-offs. |
+| `validate-model-selection-topic` | Checks registry size, score validity, training statistics, cloned fits, baseline parity, the declared removed feature, provisional prediction reproducibility and confusion totals. |
+
+### Selection criterion and the six-fit tuning plan
+
+Average precision is the primary retention ranking criterion because repeat events are rare. ROC-AUC provides a secondary view. This criterion is a declared project choice, without a claim that AP directly represents marketing benefit.
+
+The existing results make Logistic Regression and GaussianNB the two strongest initial families by validation AP. Compare logistic C values 0.1, 1 and 10, keeping the existing input representation and all other settings. Smaller C means stronger regularization. Larger C penalizes fitting errors more strongly relative to regularization. Both choices can help or hurt validation.
+
+Compare GaussianNB variance-smoothing values 1e-9, 1e-6 and 1e-3. The parameter adds a stabilizing variance term derived from training feature variation. Increasing it can dampen extreme likelihood ratios from nearly constant features. It does not repair conditional-independence violations or automatically calibrate probabilities.
+
+Clone all pipelines to preserve the original fitted baselines. Each candidate's preprocessing and classifier fit only on training rows. Validation selects between candidates. Sort by AP, then ROC-AUC, then declared order for exact ties. Selecting families and parameters from a reused validation cohort can make the winner optimistic. This is why final test scoring stays reserved until choices are frozen.
+
+### Training-only feature reasoning and a declared ablation
+
+Compute Pearson correlations among numeric training columns. The calculation uses available pairs of observations. High correlation suggests overlapping information but does not prove either input is useless. Correlation is also not a causal effect.
+
+Declare one removal experiment: exclude log average order value, while retaining log merchandise spend and historical order count. Most customers have one historical order, making these two spending summaries often similar. Use the best logistic C from its three-setting comparison and hold all other choices fixed.
+
+The reduced preprocessor uses ten numeric fields plus state rather than deleting a column from every model. Compare its validation AP with the full-feature logistic result. This is one feature-selection learning exercise, without an automated elimination search. PCA remains a conditional supporting topic, not a new transformation required merely to make the notebook longer.
+
+### Provisional candidate and threshold interpretation
+
+Rank all seven candidates by the declared criterion and keep a provisional model reference, required input fields and validation probabilities. This nomination remains subject to robustness and understanding checks. No final test score is used.
+
+Report probability thresholds 0.01, 0.02, 0.05, 0.10 and 0.50. Lower thresholds generally flag more customers, potentially increasing recall and false positives. The table is illustrative. No automatic maximum-F1 threshold is selected, and no business cost or contact capacity is assumed. Final operating policy remains to be stated before the test is opened.
+
+Keep AP separate from threshold metrics. The AP for a fixed score vector does not change just because the classification boundary changes. Precision, recall, F1 and confusion counts do change. A ranking model with AP above prior can still be unsuitable for a useful binary decision.
+
+### Code reference
+
+| Method or expression | Meaning |
+|---|---|
+| `validation_score_registry` | Maps model names to their already calculated common-cohort scores, score type and representation. |
+| `clone` | Creates an unfitted copy of pipeline configuration so tuning does not mutate earlier fitted baselines. |
+| `set_params(classifier__C=...)` | Changes only logistic regularization in the cloned pipeline. |
+| `classifier__var_smoothing` | Changes Gaussian variance stabilization in the cloned Bayes pipeline. |
+| `warnings.simplefilter("error", ConvergenceWarning)` | Prevents an unconverged fit from silently entering the comparison. |
+| `X_train[numeric_fields].corr()` | Calculates feature correlations without validation outcomes. |
+| Reduced `ColumnTransformer` | Fits the same preparation steps on the declared remaining numeric fields and state. |
+| `candidate_order` | Gives deterministic tie resolution without looking at final test results. |
+| `probability >= threshold` | Converts ranking probabilities to the illustrated binary decisions. |
+| `np.diff(predicted_positives)` | Checks that higher thresholds do not increase the number of flagged customers. |
+
+### Viva questions and short answers
+
+1. Why combine all model results in one table? It makes comparison on the same task and cohort explicit.
+2. Can we compare AP from probabilities and SVM margins? Yes. Both provide an ordering score. Their native decision boundaries differ.
+3. Why identify feature representations? A numeric-only model and a state-encoded model do not differ only in classifier type.
+4. Why is accuracy not our primary selection metric? Nonrepeat cases dominate, so an all-negative model can look accurate while missing all repeats.
+5. What does tuning change? A few declared hyperparameters rather than the already defined target or chronological split.
+6. What does C control? The regularization/error trade-off in Logistic Regression. Smaller C imposes stronger regularization.
+7. What does Gaussian variance smoothing do? Stabilizes class variances used in likelihood calculations.
+8. Why clone pipelines? Preserve baseline objects and refit training preprocessing independently for each candidate.
+9. Does high feature correlation prove redundancy? No. The feature can still contribute useful conditional information, so test a declared removal experiment.
+10. Why keep the ablation small? It evaluates one understandable hypothesis without searching many validation-driven combinations.
+11. Why is the winning validation score provisional? The same validation labels helped select its family and settings.
+12. Does lowering a threshold improve AP? No. It changes hard decisions, while AP assesses the unchanged score ordering.
+13. Is the threshold with highest observed F1 automatically optimal? No. Sampling noise, reuse of validation and business costs matter.
+14. Why keep the test unopened? It must evaluate the frozen decisions independently rather than serve as another tuning set.
+15. Does tuning need to make the model better? No. An honest negative result can establish that extra complexity is unsupported.
+
+### Measured six-fit comparison
+
+| Candidate | Training AP | Validation AP | ROC-AUC |
+|---|---|---|---|
+| Logistic C=0.1 | 0.019446 | 0.023572 | 0.513780 |
+| Logistic C=1 | 0.021040 | 0.016882 | 0.515552 |
+| Logistic C=10 | 0.023465 | 0.013965 | 0.520373 |
+| GaussianNB smoothing 1e-9 | 0.014551 | 0.013115 | 0.528977 |
+| GaussianNB smoothing 1e-6 | 0.014464 | 0.013147 | 0.528973 |
+| GaussianNB smoothing 1e-3 | 0.014595 | 0.014497 | 0.526865 |
+
+Stronger logistic regularization, C=0.1, has the highest AP in the six-fit comparison. Increasing C improves training AP but reduces validation AP in these settings. Gaussian smoothing 1e-3 improves its family's AP modestly. ROC-AUC and AP need not rank configurations identically. The project selection criterion remains AP, with its limitations declared.
+
+Original logistic C=1 and GaussianNB smoothing 1e-9 reproduce their earlier validation score vectors, checking that cloned refits preserve the baseline configuration. All six fits finish without convergence warnings. None uses test inputs.
+
+### Measured feature ablation and provisional nomination
+
+The training correlation between log merchandise spend and log average order value is 0.994414. Other leading correlations include average order value versus freight ratio -0.694492, merchandise spend versus freight ratio -0.691097 and known review count versus known delivery count 0.677349. These are training-only pairwise associations.
+
+Removing log average order value from the C=0.1 logistic pipeline leaves ten numeric predictors plus state. Training AP is 0.019517, validation AP 0.025775 and ROC-AUC 0.513538. It outranks the other six candidates on the declared AP criterion and becomes the provisional candidate. Validation AP is above the original logistic 0.016882 and constant-prior 0.008243 references. No significance or future generalization claim is made.
+
+The AP increase and near-chance AUC can coexist because the metrics weight ranking behavior differently. A small number of improved high-ranked cases can affect AP in this rare-event cohort. Training AP below validation AP is also possible across different chronological populations and does not establish superior out-of-sample fit. Inspect uncertainty and temporal behavior before freezing the choice.
+
+### Measured fixed-threshold scenarios
+
+| Threshold | Precision | Recall | F1 | Flags | TN | FP | FN | TP |
+|---|---|---|---|---|---|---|---|---|
+| 0.01 | 0.008030 | 0.371134 | 0.015721 | 4483 | 7224 | 4447 | 61 | 36 |
+| 0.02 | 0.038043 | 0.072165 | 0.049822 | 184 | 11494 | 177 | 90 | 7 |
+| 0.05 | 0.230769 | 0.030928 | 0.054545 | 13 | 11661 | 10 | 94 | 3 |
+| 0.10 | 0.500000 | 0.020619 | 0.039604 | 4 | 11669 | 2 | 95 | 2 |
+| 0.50 | 0 | 0 | 0 | 0 | 11671 | 0 | 97 | 0 |
+
+At 0.10, reported precision 0.5 is based on just four flags and two correct repeats. At 0.01, 36 repeats are detected but 4,447 nonrepeat customers are also flagged. The table shows trade-offs rather than a chosen policy. With no supplied business cost or outreach capacity, no threshold is described as optimal. The provisional candidate remains a weak experimental classifier.
+
+### Verification and topic completion
+
+Executed all 85 code cells sequentially from data loading. Twenty-two figures are embedded and no error outputs remain. Visually inspected the new bounded-tuning and threshold figure.
+
+Verified fourteen unique existing classifier entries and finite aligned validation scores. Verified six cloned tuning fits and one declared ablation, with training medians, numeric scaler sample counts and Gaussian class counts. Original C=1 logistic and 1e-9 Bayes score vectors match their earlier baselines. The reduced imputer statistics match the ten allowed numeric training fields, and the removed column is excluded from that preprocessor.
+
+Verified the nominated model reproduces its stored validation probabilities from its declared inputs. All five threshold rows reconcile to the 11,768 customers and 97 repeats. Flag counts do not increase as thresholds rise. The new code contains no X_test or y_test references. Earlier baseline objects remain intact. Final test scores and operating policy remain reserved.
+
+The topic adds no dependencies, new model families or app components. The compatible benchmarks in the table use this project's exact target and validation cohort. Source satisfaction-model scores are not substituted for a compatible repeat-purchase benchmark.
+
+**Suggested topic commit message** — `feat: consolidate model comparisons and bounded retention tuning`.
+
+**Files in the same contribution** — `olist_pipeline.ipynb`, `PIPELINE_NOTES.md`, `README.md`, `SYLLABUS_ALIGNMENT.md`, and `PROJECT_PLAN.md`.
+
+**Commit status** — Current topic left uncommitted. The preceding RFM topic is present in commit `229ce0a`. No staging or commit action was performed for this topic.
+
+## Topics 14–16 — Final robustness, understanding pack and held-out evaluation
+
+The technical notebook scope is complete. The model and decision policies were frozen before the final test cells. Retention keeps the training-fitted reduced Logistic Regression C=0.1. Recommendations use content weights 2:1 with popularity ties/fallback, refitted only on history before the June cutoff. No final outcome triggers a new choice.
+
+### Final blocks and their purpose
+
+| Block | Work completed |
+|---|---|
+| `check-validation-robustness` | Reports monthly validation scores and a supplementary fixed-score bootstrap without refitting or selecting from test outcomes. |
+| `fit-frozen-content-engines` | Defines honest history-only content/popularity helpers and checks exact recommendation-ID parity with the earlier implementation for all eligible validation customers. |
+| `evaluate-frozen-retention-test` | Scores the held-out classification cohort using frozen pipelines; reports AP/AUC and both declared decision thresholds. |
+| `evaluate-frozen-recommendation-test` | Fits the fixed method on strictly pre-cutoff history and evaluates the reserved 30-day recommendation window with eligibility coverage. |
+| `demonstrate-isolated-profile-leakage` | Fits future-contaminated customer means only in a separate diagnostic object after honest scoring, demonstrating the starter's leakage lesson. |
+| `final-notebook-checks` | Verifies prediction ranges, confusion totals, training medians, catalog coverage, invalid-input rejection and isolation of future-profile data. |
+| `record-notebook-reproducibility` | Records Python/package versions and SHA-256 hashes for all nine input CSVs. |
+
+### Robustness findings
+
+November 2017 validation has 4,290 customers and 35 repeats, with AP 0.010057. December has 7,478 customers and 62 repeats, with AP 0.048037. The unweighted monthly AP mean is 0.029047 and sample SD is 0.026855 across only two periods. This is temporal variation of one fixed model, not independent random-seed repeats or a pooled AP calculation.
+
+The 300-resample conditional bootstrap yields selected-validation AP bounds 0.010908–0.071047 and a paired AP-difference interval of 0.001229–0.027156 versus original logistic. Content validation NDCG@5 bounds are 0–0.041930. These are supplementary fixed-score intervals; they do not account for selecting the best model on validation. The weak held-out results are more relevant to the final generalization claim.
+
+### Honest final results
+
+Classification test has 14,213 customers and 120 repeats. Prior AP is 0.008443. Original Logistic Regression has AP 0.012347 and ROC-AUC 0.459006. The frozen reduced C=0.1 pipeline has AP 0.015311 and ROC-AUC 0.474569.
+
+At 0.02, the selected model flags 176 customers, with TN=13,923, FP=170, FN=114 and TP=6. Precision is 0.034091, recall 0.05 and F1 0.040541. At 0.5, all 120 repeats are missed. The model ranks above the constant prior on AP but has poor overall discrimination, including below-chance test ROC-AUC. It remains an experimental course model. Do not reverse score direction, tune a new threshold or switch model using these test outcomes.
+
+Content recommendation test Recall@5 is 0.056701, NDCG@5 0.034836, Precision@5 0.012371 and hit rate 0.061856. At ten, recall is 0.067010 and NDCG 0.038273. Popularity has no hits at either K on this cohort. There are 97 eligible warm-discovery customers out of 6,121 future customers, a 1.5847 percent eligible share, and 26,895 historical candidate items. Six customers receive a relevant top-five content suggestion. This is not whole-population success, current-stock availability or measured sales lift.
+
+### Deliberate leakage result
+
+The isolated invalid engine averages customer profiles using historical plus test-window purchases, while preserving the honest seen-item filter and catalog. This meets the starter's lesson about fitting means with evaluation data. Honest NDCG@5 is 0.034836; invalid NDCG@5 is 0.052285, an apparent increase of 0.017449. The improvement comes from unavailable future preferences. Its results are excluded from honest model comparisons and app candidates. Assertions verify the original history/profile matrix remains unchanged.
+
+### Understanding logs and viva closure
+
+The notebook now includes six numeric decision rows, two actual problem/fix entries and an explicit AI-use log. The problem log describes the fresh-run missing NumPy import in a targeted QA helper and the incorrectly centered RFM color scale. Both were observed and corrected. Genuine raw-data timestamp and geolocation issues are distinguished from coding bugs.
+
+The log states that the assistant authored substantial code and documentation and ran tool-assisted checks. It does not claim the student independently performed those checks or can already explain every algorithm. The notes remain a study aid for viva preparation. The notebook also records hypothetical scaling and industry extensions as proposals rather than completed experiments.
+
+1. Why does monthly AP vary? Customer mix, time and the small number of positive cases differ between periods.
+2. Why is a positive validation bootstrap difference insufficient? The same validation data helped choose the candidate, and fixed-score resampling does not remove that selection bias.
+3. Why report a disappointing test result? It is the evidence about generalization after decisions were fixed.
+4. Can AP above prior coexist with ROC-AUC below 0.5? Yes. The metrics weight ranking behavior differently, particularly with rare positives and a few good high-ranked examples.
+5. Why does future-profile leakage improve recommendation scores? It exposes the customer's future product attributes to the scoring profile.
+6. Are the invalid metrics application results? No. They are isolated diagnostic evidence and must never be displayed as honest performance.
+7. What does the 0.02 threshold mean? A fixed illustrative review rule selected before test scoring, without an optimal business-cost claim.
+8. What remains after the notebook? Extract verified preparation and inference components, then build and validate the application interface and bounded chatbot.
+
+### Reproducibility and completion
+
+All 92 code cells executed sequentially and 24 figures are embedded, with passed checks and no error outputs. Visually inspected the final test plots. The runtime is Windows/Python 3.12.14; exact installed package versions are pinned in `requirements-notebook-lock.txt`. `notebook-data-manifest.json` records all nine local file sizes and SHA-256 hashes. Publisher version and exact download date were not recorded and are not fabricated.
+
+`NOTEBOOK_HANDOFF.md` records function contracts, selected model choices, target/cutoff meanings, measured results and constraints for the next stage. The notebook remains the reference implementation. No application modules or external LLM workflow are created here.
+
+**Final topic commit suggestion** — `feat: finalize notebook evaluation and implementation handoff`.
+
+**Files to keep together** — notebook, pipeline notes, README, project plan, syllabus alignment, handoff, input manifest and notebook environment lock. The preceding comparison/tuning changes are still included in this uncommitted contribution.
+
+**Commit status** — No staging or commit action performed. The agreed technical notebook scope is complete. Optional extra algorithms remain deferred; student study, application development and final project presentation are separate tasks.

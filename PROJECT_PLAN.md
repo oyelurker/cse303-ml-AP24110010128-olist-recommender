@@ -95,6 +95,17 @@ Use chronological evaluation and prevent future information from entering histor
 
 **Output** — Honest evaluation results and an understanding pack that can be explained during a demonstration or viva.
 
+## Notebook completion checklist
+
+- [x] Data inspection, cleaning, EDA and historical task/split design.
+- [x] Core classifier and recommendation comparisons, neural learning demonstrations and RFM segmentation.
+- [x] Consolidated validation table, bounded tuning and a declared feature ablation.
+- [x] Validation robustness, isolated leakage demonstration and evidence-backed understanding logs.
+- [x] Freeze model and illustrative operating policy, then evaluate held-out classification and recommendation tests.
+- [x] Final notebook conclusions, reproducibility record and clean full execution.
+
+The agreed technical notebook scope is complete, with 92 executed code cells and 24 figures. Read NOTEBOOK_HANDOFF.md for fixed choices, held-out results and implementation contracts. Application development is separate. Optional boosting, hybrid recommendations and advanced extensions are deferred.
+
 ## Phase 7 Prepare the application pipeline
 
 After notebook validation, extract reusable data preparation and inference functions. Save the fitted preprocessing, selected models, feature configuration, and identifier mappings together with regeneration instructions.
@@ -125,14 +136,14 @@ Customer figures, predictions, and recommendations will come from the underlying
 4. A README covering the problem, dataset, methods, results, sources, limitations, and how to run the project.
 5. A final report and the required understanding checks, model comparisons, and demonstration material.
 
-## Decisions to finalize after data inspection
+## Recorded assumptions and remaining product decisions
 
-- Dataset version, filtering policy, and reliable observation period.
-- Repeat-purchase horizon and feasible chronological partitions.
-- Product-level recommendation coverage and handling of sparse histories.
-- Final models and measurable success criteria relative to baselines.
+- Local dataset hashes, filtering policy and the working observation boundary are recorded. Publisher version and exact download date are unknown.
+- Repeat-purchase horizon, chronological partitions and final evaluation are fixed in the notebook.
+- Product eligibility, sparse-history coverage and fallback behavior are measured and documented.
+- Frozen model results and weak predictive quality are recorded relative to compatible baselines.
 - Application framework, chatbot technology, and deployment arrangement.
 
 ## Current status
 
-Data preparation, EDA, historical targets and partitions, core classifier and recommendation comparisons, neural-learning demonstrations, and RFM segmentation are implemented. Limited tuning, remaining understanding checks and locked final test evaluation precede application development. The notebook, README and pipeline notes record measured results and limitations. The application follows the verified model comparisons and evaluation.
+Data preparation, EDA, historical targets and partitions, core classifier and recommendation comparisons, neural-learning demonstrations, and RFM segmentation are implemented. Consolidated validation comparison, bounded tuning and one feature ablation are also complete. Robustness, understanding logs, locked final test evaluation, conclusions and a clean full run are complete. Application development is next, based on the documented notebook handoff and limited predictive performance. The notebook, README and pipeline notes record measured results and limitations. The application follows the verified model comparisons and evaluation.

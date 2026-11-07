@@ -14,7 +14,7 @@ This is the working course-aligned scope and learning path. It distinguishes wha
 - The kickoff guide and project catalog add capstone expectations, including a comparative algorithm ladder and working deployment.
 - The Week 10 starter is a reference for recommender methods and understanding checks. Its content includes additions beyond the explicit theory list.
 - The public Kaggle notebook supplies implementation examples. Methods appearing there require separate syllabus and project justification.
-- The original comparison reviewed `PROJECT_PLAN.md`, the Gemini project notes, and 43 executed notebook code cells. The recommender, classification, ensemble and neural-learning implementations have since extended the notebook to 80 executed cells.
+- The original comparison reviewed `PROJECT_PLAN.md`, the Gemini project notes, and 43 executed notebook code cells. The recommender, classification, ensemble and neural-learning implementations have since extended the completed core notebook to 92 executed cells.
 
 An algorithm being covered by the syllabus makes it suitable to study and use when it fits the task. It does not mean every lecture topic must become a separate application feature. The model comparisons and small learning demonstrations can live in the notebook, while the application uses the selected models.
 
@@ -43,7 +43,7 @@ Logistic Regression is not explicitly named in the supplied theory or lab topic 
 | KNN | Unit II, Lab 5 | A retention classification comparison | Implemented in Section 7 | Keep. Explain K, distance, scaling, and majority voting |
 | Decision trees | Unit II | Interpretable retention classifier | Implemented in Section 7 | Keep. Explain splits, depth, impurity, and overfitting |
 | ID3 | Unit II, Lab 6 | A small learning example accompanying the tree comparison | Implemented in Section 7 | Explain entropy and information gain, with a genuinely identified ID3 example |
-| Feature selection | Unit II | Examine usefulness and redundancy of predictors | Preliminary EDA only | Keep a simple training-only feature-analysis exercise |
+| Feature selection | Unit II | Examine usefulness and redundancy of predictors | Training correlations and one ablation in Section 13 | Keep a simple training-only feature-analysis exercise |
 | Content-based recommendation | Unit II | Recommend products using available item attributes and customer history | Implemented in Section 8 | Core project method. Explain item vectors and similarity |
 | Collaborative filtering | Unit II | Recommend from customer-product purchase patterns | Implemented in Section 8 | Core project method. Start with item-based similarity |
 | Naive Bayes | Unit III, Lab 9 | A retention comparison with stated assumptions | Implemented in Section 9 | Keep a justified variant. Explain conditional independence and feature assumptions |
@@ -105,8 +105,8 @@ These terms are not explicitly named in the official topic list, or their exact 
 | Addition | Official syllabus relationship | Current position | Recommendation |
 |---|---|---|---|
 | Bootstrap confidence intervals | Not explicitly listed | Retained in Appendix A | Use as supplementary evaluation material. Primary study focuses on the guide's repeated-run mean and standard deviation |
-| Brier score and probability-calibration theory | Not explicitly listed | Brier score is already reported. Calibration models are pending | Treat Brier as supplementary. Calibration methods can be deferred |
-| TruncatedSVD and matrix factorization | Not explicitly named in the official syllabus; SVD appears in the Week 10 reference | Planned | Defer from the core method set. Include a small version only if the instructor expects that starter section and its extra linear algebra is understood |
+| Brier score and probability-calibration theory | Not explicitly listed | Brier score is already reported. Calibration models are deferred | Treat Brier as supplementary. Calibration methods can be deferred |
+| TruncatedSVD and matrix factorization | Not explicitly named in the official syllabus; SVD appears in the Week 10 reference | Deferred | Defer from the core method set. Include a small version only if the instructor expects that starter section and its extra linear algebra is understood |
 | XGBoost-specific machinery | General boosting is in Unit V; this library and its internals are not named | Earlier plan option | Prefer Random Forest for the main ensemble. Defer XGBoost-specific tuning and derivations |
 | CatBoost and LightGBM | Named implementations are not in the supplied syllabus | Present in the Kaggle source, outside our implemented models | Do not inherit these extra models from the reference automatically |
 | SMOTE and synthetic oversampling | Not explicitly listed | Used by the Kaggle source, outside our current baseline | Defer. Begin with original data and, if needed, a clearly explained training-only class-weight comparison |
@@ -175,9 +175,9 @@ Each topic includes its notebook sections, measured outputs, explanations, and r
 4. What does our repeat label mean, and why are incomplete follow-up windows excluded?
 5. Why must training outcomes mature before the next prediction period?
 6. Why does Logistic Regression use a sigmoid, and what does the classification threshold change?
-7. Why do the current models predict no positive cases at 0.5 despite assigning different probabilities?
+7. Why do several models predict no positive cases at 0.5 despite assigning different probabilities?
 8. Why is accuracy alone inadequate for a target with very few repeat orders?
-9. How does popularity ranking work, and how will content and collaborative filtering differ?
+9. How does popularity ranking work, and how do content and collaborative filtering differ?
 10. What do Precision at 5, Recall at 5 and NDCG at 5 measure?
 11. What happens for a new customer or an unseen product?
 12. How does the application reuse the fitted preprocessing and models?
@@ -186,4 +186,4 @@ Current Logistic Regression validation ROC-AUC is about 0.516. It is an initial 
 
 ## Recommended next action
 
-Review this scope, then continue with the neighbors-and-trees topic and the syllabus recommender methods. Keep the next implementation centered on explainable course concepts and update the viva notes alongside the code.
+The agreed technical notebook is complete, including core comparisons, RFM, bounded tuning, robustness, the understanding pack and frozen held-out evaluation. Use NOTEBOOK_HANDOFF.md to extract reusable preparation and inference components, then build the application. Keep weak retention discrimination and limited recommendation eligibility visible in the interface and viva. Student study and rehearsal remain necessary; optional extra algorithms are deferred.

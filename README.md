@@ -12,41 +12,44 @@ See [the syllabus comparison and viva walkthrough](SYLLABUS_ALIGNMENT.md) for th
 
 ## Current status
 
-Data inspection, cleaning, EDA, historical features, temporal partitions, baseline models, the Unit II neighbors-and-trees comparison, content-based and item-based collaborative recommendations, the Unit III Naive Bayes/SVM comparison, Random Forest, the neural-learning topic, and historical RFM segmentation are complete. The notebook has 80 executed code cells and 21 figures. It includes KNN, entropy-based CART, separate categorical ID3, content vectors, sparse collaborative similarities, cold-start checks, and worked calculations for viva preparation. Gaussian Naive Bayes and ordinary and balanced linear SVM include manual prediction checks. Random Forest adds three controlled configurations, a bootstrap inspection, probability-averaging verification and training impurity importance. Perceptron, ADALINE, MADALINE and numerically checked backpropagation demonstrations accompany a small eight-unit ANN. K-means profiles, a sampled Ward comparison and frozen later-snapshot assignments are included. Consolidated model selection, limited tuning and remaining understanding checks are next. Application technology remains to be selected.
+The agreed core notebook is complete: **92 executed code cells and 24 figures**, with passed checks, final held-out evaluation, worked learning examples, an isolated leakage experiment, decision/problem/AI-use logs and reproducibility records. The application and chatbot are the next stage.
 
-Initial validation Logistic Regression has average precision 0.016882 and ROC-AUC 0.515552, compared with prior average precision 0.008243. Overall discrimination is weak, and both classifiers predict zero positives at the initial 0.5 threshold. Popularity has Recall at 5 of 0.011111 and NDCG at 5 of 0.005556 across 90 eligible warm-validation customers. These are starting benchmarks. Final test performance remains reserved for the later locked comparison.
+Read [the implementation handoff](NOTEBOOK_HANDOFF.md) for frozen choices, function contracts, results and limitations. [Pipeline notes](PIPELINE_NOTES.md) explain each completed topic and its viva questions.
 
-The neighbor/tree configurations remain weak on validation. KNN K=15 has ROC-AUC 0.529690 and average precision 0.008963. Deeper trees improve training fit while slightly worsening validation results. Every tested neighbor/tree library configuration predicts no repeats at the initial 0.5 threshold. The worked ID3 model is a three-attribute teaching comparison with a different feature representation. Supplementary bootstrap intervals and Brier reporting are grouped in Appendix A.
+### Final honest results
 
-Gaussian Naive Bayes has validation AP 0.013115 and ROC-AUC 0.528977, catching nine of 97 repeats with 367 false positives. Ordinary linear SVM predicts no repeats. Balanced linear SVM catches 43 repeats with 4,977 false positives, showing the recall/false-alarm trade-off. All three new configurations remain below the Logistic Regression baseline AP. Bayes uses median-imputed numeric features, while SVM uses the existing scaled and state-encoded representation. SVM values are decision scores with a zero boundary. The worked Bayes example also illustrates confident error under approximate distribution assumptions.
+The classification test has 14,213 customers and 120 repeat events.
 
-The ordinary depth-six Random Forest has validation AP 0.012924 and ROC-AUC 0.524081, with no repeat decisions at 0.5. The balanced depth-six forest catches 14 repeats with 1,241 false positives. Increasing balanced depth to twelve raises training AP substantially while slightly lowering validation AP. None of the three 200-tree configurations beats the Logistic Regression baseline AP. Bootstrap samples and the mean of individual tree probabilities are independently checked. Training impurity importance is presented with its correlation and split-cardinality limitations.
+| Model | Test average precision | Test ROC-AUC |
+|---|---|---|
+| Training prior | 0.008443 | 0.500000 |
+| Original Logistic Regression | 0.012347 | 0.459006 |
+| Frozen reduced Logistic Regression, C=0.1 | 0.015311 | 0.474569 |
 
-The eight-hidden-neuron ANN has validation AP 0.011349 and ROC-AUC 0.518983 after a fixed 80-pass training budget. It predicts no repeats at 0.5 and remains below Logistic Regression AP. Training and validation learning curves are saved. The separate logic examples learn AND/XOR, and all nine manual backpropagation gradients match numerical differences. Those fixtures demonstrate learning mechanics rather than customer prediction quality. Final test scoring remains reserved.
+At the declared 0.02 review threshold, the selected model detects six repeats with 170 false positives and misses 114 repeats. It predicts no repeats at 0.5. Overall discrimination is weak, so repeat scores remain experimental rather than reliable business predictions. No model choices changed after test scoring.
 
-RFM segmentation uses 30,870 customers observed before 1 November 2017. K=2 has sampled silhouette 0.738245. A frequency audit shows that it exactly separates 30,014 single-order customers from 856 multiple-order customers in this snapshot. This is a simple historical distinction, without a future-loyalty claim. Ward and K-means agree on the 600-customer teaching sample. The same frozen scaler and centers assign a later 63,881-customer snapshot; these shares are descriptive rather than predictive validation.
+| Recommendation method | K | Precision | Recall | NDCG |
+|---|---|---|---|---|
+| Content | 5 | 0.012371 | 0.056701 | 0.034836 |
+| Content | 10 | 0.007216 | 0.067010 | 0.038273 |
+| Popularity | 5 | 0 | 0 | 0 |
+| Popularity | 10 | 0 | 0 | 0 |
 
-Both supplied notebooks are used as references. The Kaggle notebook informs preparation, EDA, RFM concepts, and preprocessing pipelines. The Week 10 starter informs recommendation progression, popularity, ranking metrics, and understanding checks. A reference-use map near the start of our notebook identifies implemented adaptations and pending methods. Content-based and collaborative methods now have validation comparisons, cold-start demonstrations and hand-checked similarity calculations. The core classifier families now have comparisons. Limited tuning, final evaluation and the remaining understanding pack are still on the roadmap. A simple hybrid is optional. SVD and advanced extensions are deferred under the syllabus-aligned scope. The application and bounded chatbot follow the verified models.
+Recommendation results cover 97 eligible warm-discovery customers, only 1.5847 percent of 6,121 future shoppers. Six customers receive a relevant content top-five suggestion. New customers receive explicit popularity fallback. Prices are historical medians and stock availability is unknown.
 
-Content recommendations achieve validation Recall at 5 of 0.022222 and NDCG at 5 of 0.015409. Item-based collaborative results are 0.005556 and 0.006813 respectively. Content leads this small 90-customer comparison, with relevant top-five suggestions for only two customers. Collaborative filtering fills 77.11 percent of top-five positions from popularity. Fixed category/price weights and a 20-neighbor limit keep this comparison understandable, without claiming optimal tuning. New customers receive popularity suggestions. A separate simulated product demonstrates metadata-only content scoring.
+Historical RFM K=2 separates single-order and multiple-order histories, without a future-loyalty claim. The notebook also includes KNN, CART, categorical ID3, Bayes, SVM, forests, a small ANN and neural-learning demonstrations as course comparisons. Both supplied notebooks remain references, with attribution and an adaptation map inside our notebook. Optional boosting, hybrid, SVD and advanced NLP remain outside the completed core scope.
 
-The EDA finds a 3.00 percent observed repeat-buyer share and 99.99668 percent customer-product interaction sparsity in the stated delivered cohort. In the provisional 90-day follow-up cohort, 1,714 of 75,320 eligible customers repeat within the window. These are descriptive feasibility findings. Cohort coverage and prediction timing will be finalized before modeling.
+The full notebook rerun passed. The exact environment is recorded in [the notebook lock file](requirements-notebook-lock.txt), and [the input manifest](notebook-data-manifest.json) identifies the local CSVs by SHA-256. Publisher version and download date were not recorded. Earlier development-stage metrics and decisions remain documented in the notes.
 
-The initial retention task now scores customers 30 days after their first observed item-bearing placed order and predicts another placed order within the next 90 days. It uses an exclusive working observation boundary of 1 September 2018. Chronological cohorts contain 14,362 training customers with 140 positives, 11,768 validation customers with 97 positives, and 14,213 test customers with 120 positives. Customer IDs are disjoint, and label-maturation gaps are excluded. This target differs from the descriptive EDA cohort.
-
-Warm-customer recommendation validation and test use fixed 30-day future windows and historical candidate catalogs. There are 90 eligible validation customers and 97 eligible test customers with previously unseen future products. Report this limited ranking population alongside cold-start behavior and coverage. The fixed-age retention decision and coverage boundary are explicit design choices, with sensitivity and uncertainty to be discussed during evaluation.
-
-Open [the project notebook](olist_pipeline.ipynb) in VS Code, select a Python Jupyter kernel with pandas installed, and run the cells from top to bottom with the repository root as the working directory. The initial section includes saved outputs from execution against the local CSVs.
-
-## Planned workflow
+## Workflow
 
 ### Notebook environment
 
-Create an isolated environment and install the notebook dependencies from the repository root.
+Use Python 3.12 (verified with 3.12.14). Create an isolated environment and install the pinned notebook dependencies from the repository root.
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements-notebook-lock.txt
 ```
 
 In VS Code, open `olist_pipeline.ipynb`, choose **Select Kernel**, and select the Python interpreter inside `.venv`. Run the notebook from top to bottom. Plot outputs are embedded in the saved notebook. Dependencies and the local environment are separate from the downloaded data.
@@ -68,7 +71,7 @@ See [the pipeline reference notes](PIPELINE_NOTES.md) for step-by-step code expl
 
 ## Dataset
 
-The dataset publisher describes approximately 100,000 Brazilian e-commerce orders from 2016 to 2018. The linked CSV tables cover customers, orders, order items, products, payments, reviews, sellers, geolocation, and category translations. Exact counts and usable date coverage will be recorded during initial inspection. [Olist dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce), [publisher introduction](https://www.kaggle.com/general/67613).
+The dataset publisher describes approximately 100,000 Brazilian e-commerce orders from 2016 to 2018. The linked CSV tables cover customers, orders, order items, products, payments, reviews, sellers, geolocation, and category translations. Exact counts and usable date coverage are recorded in the executed notebook. [Olist dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce), [publisher introduction](https://www.kaggle.com/general/67613).
 
 ### Download instructions
 
@@ -122,13 +125,13 @@ Get-ChildItem -LiteralPath .\data\raw -Filter *.csv | Select-Object Name
 (Get-ChildItem -LiteralPath .\data\raw -Filter *.csv -File).Count
 ```
 
-The count should be `9`, and the filenames should match the expected layout. This checks file presence. Schema, completeness, and data quality checks will follow in the notebook.
+The count should be `9`, and the filenames should match the expected layout. This checks file presence. Schema, completeness and data quality checks are included in the completed notebook.
 
 The `data/raw/` ignore rule excludes newly untracked downloads. The nine current CSV files are already tracked in this repository, so adding the rule does not remove them from Git. Each collaborator can download their own copy using these instructions. Record the dataset version and download date during acquisition, and follow the licence stated on the Kaggle dataset page.
 
-## Planned analysis and models
+## Analysis and models
 
-| Component | Initial approach |
+| Component | Approach |
 |---|---|
 | Customer analysis | RFM features and customer segmentation |
 | Repeat-purchase prediction | Dummy and logistic baselines followed by comparative course models and ensembles |
@@ -136,7 +139,7 @@ The `data/raw/` ignore rule excludes newly untracked downloads. The nine current
 | Evaluation | Chronological partitions, classification and ranking metrics, coverage, and repeated evaluation |
 | Conversational application | Customer summaries, model explanations, product suggestions, and outreach message drafting |
 
-The prediction horizon and model selection will depend on measured data feasibility. All reported results will come from executed experiments.
+The notebook fixes the 30-day customer-age decision and next-90-day repeat horizon, selected pipelines and historical recommendation windows. Reported results come from executed experiments; the frozen choices and limitations are documented in NOTEBOOK_HANDOFF.md.
 
 ## References and attribution
 
