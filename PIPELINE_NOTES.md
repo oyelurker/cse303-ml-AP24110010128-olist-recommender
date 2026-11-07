@@ -1497,6 +1497,149 @@ Static checks confirm the new model code does not access X_test or y_test. Final
 
 **Commit status** — Current topic left uncommitted. The preceding recommendation and Bayes/SVM topics are present in commit `8ba2381`. No staging or commit action was performed by the assistant for this topic.
 
+## Topic 11 — Neural learning and a small ANN
+
+### Purpose and scope
+
+Cover the Unit IV learning progression without a deep architecture. Keep four small teaching exercises separate from the actual retention comparison. Logic truth tables explain representational capacity and update rules. They are not Olist validation experiments.
+
+The real retention ANN uses the same 14,362 training customers and 11,768 validation customers. The prediction horizon and chronological boundaries remain unchanged. Final test scoring is reserved.
+
+### Notebook blocks and processing sequence
+
+| Block | What it does and why |
+|---|---|
+| `learn-perceptron-and-adaline` | Creates a four-row bipolar AND fixture. Trains a threshold Perceptron with online mistake updates, then a linear ADALINE with batch squared-error updates. Prints both truth tables and plots their learning histories. |
+| `learn-madaline-xor` | Creates a two-hidden-unit MADALINE with fixed bipolar OR output. Runs Rule I updates on XOR and prints hidden responses, predictions and the first updates. |
+| `worked-neural-backpropagation` | Runs a 2-2-1 sigmoid forward pass, derives all nine parameter gradients, checks them by central finite differences and performs one small gradient-descent update. |
+| `fit-small-retention-ann` | Fits preprocessing on training rows, transforms validation, then trains an eight-unit tanh ANN for exactly 80 incremental passes. Records training and validation log loss and AP after each pass. |
+| `evaluate-small-retention-ann` | Reports final-pass classification metrics and confusion counts at 0.5 and plots loss/AP learning curves. |
+| `validate-neural-learning` | Checks learned logic outputs, fixed MADALINE output weights, every backprop gradient, loss reduction, training preprocessing and finite ANN outputs and metric totals. |
+
+### Weighted sums and threshold units
+
+A neuron computes a net input `x dot w + b`. Inputs carry observed values, weights control their contribution, and the bias shifts the boundary. The bipolar threshold maps a nonnegative net input to +1 and a negative input to -1.
+
+For bipolar AND, only (+1,+1) has target +1. The other three inputs have target -1. A linear threshold can represent this separation. XOR assigns +1 to the two mixed-sign inputs and -1 to the equal-sign inputs. Its alternating corners cannot be separated with one line.
+
+### Perceptron update
+
+Start two weights and a bias at zero. For each misclassified row, use `w += 0.1 * target * x` and `b += 0.1 * target`. Correctly classified rows do not update. This convention uses target on mistakes, equivalent to a half-scaled target-minus-prediction update for bipolar labels. Stop after an epoch with no online mistakes or after 50 passes.
+
+The learning curve counts mistakes encountered while processing rows, during which weights change. It is not a separate validation error. Perceptron convergence on separable data does not imply convergence on a nonseparable task such as XOR.
+
+### ADALINE update
+
+ADALINE trains against its continuous linear net input. Its batch objective is `0.5 * mean((target-net)^2)`. Update `w += eta * X.T @ error / N` and `b += eta * mean(error)`, with eta 0.1 for 100 passes. Apply the bipolar threshold only to report final decisions.
+
+This distinguishes a smooth linear squared-error objective from Perceptron updates triggered by hard mistakes. A larger learning rate can make gradient descent unstable. Fitting all truth-table signs correctly does not require the continuous outputs to equal every bipolar target exactly.
+
+### MADALINE Rule I example
+
+Use two threshold hidden units and fixed output weights (0.5,0.5) with bias 0.5, implementing bipolar OR. On a missed positive, update the hidden unit closest to its boundary toward +1. On a missed negative, update all currently nonnegative hidden nets toward -1. Hidden updates use linear-net errors. Output weights stay fixed. This compact algorithm follows the [CMU-hosted teaching slides](https://deeplearning.cs.cmu.edu/F24/document/readings/04Adaline.pdf), slides 10–12.
+
+The example uses seed 42, small random hidden weights, rate 0.1 and a 500-pass cap. Stop when all four XOR fixtures classify correctly. This hard-threshold learning rule is distinct from smooth multilayer backpropagation.
+
+### Forward pass and independent backpropagation check
+
+The manual network has two inputs, two sigmoid hidden neurons and one sigmoid output. Its nine parameters are four input-hidden weights, two hidden biases, two hidden-output weights and one output bias. A fixed input (0.6,0.2), target 1 and small declared initial weights make every calculation reproducible.
+
+Forward calculation uses hidden sigmoid activations, then output net and output sigmoid. Compute binary cross-entropy as `logaddexp(0, output_net) - target * output_net`, avoiding unstable direct probability logarithms. For sigmoid output and cross-entropy, output-net derivative is `probability - target`.
+
+Multiply that output derivative by output weights and hidden sigmoid derivatives `h*(1-h)` to obtain hidden-net derivatives. Form outer products with inputs for input-hidden gradients, and use the net derivatives for biases. All gradients are computed from the original parameters, before updating any weights.
+
+An independent numerical check perturbs each of the nine parameters by plus/minus 1e-6. Compare `(loss_plus-loss_minus)/(2e-6)` with the analytic gradient. Subtract 0.1 times each gradient to update parameters, then confirm this example's loss decreases. Numerical gradient agreement checks implementation arithmetic, rather than generalization.
+
+### Small ANN on retention data
+
+Clone the existing retention preprocessor and fit it only on X_train. Use median imputation with missingness indicators, training numeric standardization and training state one-hot encoding. Validation only calls transform. The ANN keeps the sparse transformed matrices, rather than materializing the entire customer-product grid.
+
+One hidden layer has eight tanh units, with sigmoid binary output. Train using minibatch SGD, learning rate 0.01, batch size 256, L2 regularization alpha 0.001, zero momentum and seed 42. No class weighting or oversampling is applied. The manual sigmoid-hidden fixture explains the chain rule, while the real network uses tanh hidden derivatives.
+
+Call `partial_fit` exactly 80 times, each processing one training pass. Internal early stopping is disabled. The fixed final pass is the evaluated model, with no convergence claim. Validation is monitored for learning curves but does not select a checkpoint or modify training settings. This avoids an internal random holdout replacing the established chronological protocol. [MLPClassifier API](https://scikit-learn.org/stable/modules/generated/sklearn.neural_network.MLPClassifier.html).
+
+Record predictive training and validation log loss with `log_loss`, excluding regularization from both displayed quantities. Also record AP because a decreasing loss can mainly reflect learning the majority class. Learning curves share the same validation customers and are not independent repetitions.
+
+### Code reference
+
+| Expression or method | Meaning |
+|---|---|
+| `bipolar_threshold` | Maps a net value to -1 or +1 with the declared zero convention. |
+| `X.T @ error / N` | Computes the negative batch squared-error weight gradient. |
+| `np.argmin(abs(hidden_net))` | Chooses the least confident hidden unit for the missed-positive MADALINE update. |
+| `expit` | Computes the sigmoid function with stable numerical handling. |
+| `np.logaddexp(0, output_net)` | Computes the stable softplus term used by sigmoid cross-entropy. |
+| `np.outer(input, hidden_delta)` | Forms all input-to-hidden weight derivatives. |
+| `finite_difference_gradient` | Approximates derivatives by independently perturbing each parameter. |
+| `MLPClassifier(hidden_layer_sizes=(8,))` | Declares one hidden layer containing eight neurons. |
+| `partial_fit` | Performs an incremental training pass while retaining the learned model state. |
+| `early_stopping=False` | Disables the library's internal early-stopping holdout. |
+| `coefs_` and `intercepts_` | Store fitted layer weights and biases. |
+| `log_loss` | Measures binary probability error, distinct from threshold accuracy. |
+
+### Viva questions and short answers
+
+1. What does a neuron compute? A weighted sum plus bias, followed by an activation function.
+2. Why include bias? It lets the decision boundary shift away from the origin.
+3. How do Perceptron and ADALINE learning differ? Perceptron updates on classification mistakes. ADALINE updates from continuous linear prediction error.
+4. Can one Perceptron solve XOR? A single linear threshold cannot separate its alternating corners.
+5. What does a hidden layer add? Nonlinear transformations can form boundaries unavailable to one linear threshold.
+6. Is MADALINE Rule I backpropagation? No. It selectively adjusts threshold hidden units while its output rule remains fixed.
+7. Why use smooth activations for backpropagation? Their derivatives let the chain rule assign loss gradients to earlier weights.
+8. What is a forward pass? Calculate activations from inputs through each layer to the output.
+9. What is backpropagation? Compute loss derivatives backward through the network using the chain rule.
+10. What does the learning rate control? The size of parameter steps along the negative gradient.
+11. What is an epoch? One pass through the training data. A minibatch update uses only part of that pass.
+12. What does regularization do? Penalizes large weights to limit complexity, without guaranteeing generalization.
+13. Why scale ANN inputs? Large differences in input units can make gradient-based learning poorly conditioned.
+14. Why inspect AP alongside loss? Rare positives can be ranked poorly even while majority-class probability predictions improve loss.
+15. Did we use validation labels in gradient updates? No. They only supply monitored metrics and the final comparison.
+16. Why is there no convergence claim? We selected a fixed 80-pass teaching budget, without an optimization convergence criterion.
+17. What does finite-difference agreement prove? That our analytic gradients match local loss derivatives at the chosen fixture.
+18. Are logic truth-table results real customer prediction results? No. They demonstrate learning mechanics separately from Olist validation.
+
+### Measured teaching examples
+
+Perceptron classifies every AND fixture correctly after its first training pass and stops after a second pass with zero online mistakes. Learned weights are (0.1,0.1) and bias -0.1. ADALINE approaches weights (0.499987,0.499987) and bias -0.499987. Its displayed half mean squared error falls from 0.5 to approximately 0.125, with all final threshold decisions correct. The nonzero residual is consistent with fitting continuous linear outputs to AND labels.
+
+MADALINE's post-pass XOR error counts are [2,0]. After two passes, its hidden units activate on opposite mixed-sign inputs, and the fixed OR output reproduces all four XOR labels. This is training-table learning only, without a held-out performance claim.
+
+The manual sigmoid network starts with hidden activations (0.542398,0.467546) and output probability 0.544059. One gradient-descent update lowers fixture cross-entropy from 0.608697 to 0.577399. All nine analytic derivatives agree with numerical central differences, with maximum absolute discrepancy approximately 6.782e-11. The first input-hidden gradient is -0.027160, the first output weight gradient is -0.247301 and the output bias gradient is -0.455941. Subtracting a negative gradient increases that parameter.
+
+### Executed ANN results
+
+There are forty transformed inputs and eight tanh hidden neurons, followed by one sigmoid output. Parameter count is `(40+1)*8 + (8+1)*1 = 337`, including all biases.
+
+| Training pass | Training log loss | Validation log loss | Training AP | Validation AP |
+|---|---|---|---|---|
+| 1 | 0.439845 | 0.441752 | 0.014602 | 0.010616 |
+| 20 | 0.062926 | 0.057788 | 0.014285 | 0.010604 |
+| 40 | 0.056483 | 0.050585 | 0.014490 | 0.010747 |
+| 60 | 0.055279 | 0.049102 | 0.014659 | 0.011019 |
+| 80 | 0.054863 | 0.048585 | 0.015011 | 0.011349 |
+
+Final validation AP is 0.011349 and ROC-AUC is 0.518983. At probability threshold 0.5, precision, recall and F1 are all zero, with zero predicted repeats. Confusion counts are 11,671 true negatives, zero false positives, 97 false negatives and zero true positives.
+
+The prior AP reference is 0.008243 and earlier Logistic Regression AP is 0.016882. This ANN ranks above the constant-prior AP reference but remains below Logistic Regression AP. Predictive log loss improves substantially across passes while AP changes only modestly. Learning the low repeat prevalence can reduce loss without finding a useful repeat ranking or positive decision rule.
+
+Validation loss being below training loss does not itself prove better generalization than training fit. The cohorts differ in time and repeat prevalence. These curves do not show a strong predictive solution. The final pass was declared in advance and was not selected by searching the validation curve. The experiment has one fixed seed and architecture. Later robustness, limited tuning and threshold decisions remain separate from this teaching comparison. No final test predictions are scored.
+
+### Verification and topic completion
+
+Executed all 75 notebook code cells sequentially. Eighteen figures are embedded, with no error outputs. Visually inspected the new logic-learning and ANN learning-curve figures.
+
+Verified all AND predictions, Perceptron stopping, ADALINE loss reduction, all XOR outputs and fixed MADALINE output weights. Independently checked all nine backpropagation gradients using central differences and confirmed a one-step fixture loss reduction.
+
+Verified ANN imputation medians, scaler training sample count and training state categories. Checked all eighty recorded passes, finite learning metrics, fitted layer shapes, the 337-parameter count, sigmoid output and disabled internal early stopping. Pipeline probabilities match predictions from the independently transformed validation matrix, remain finite and bounded, and produce correct confusion totals. Static checks confirm the new blocks do not access X_test or y_test.
+
+This topic uses existing NumPy, SciPy and scikit-learn dependencies. It adds no deep-learning framework, architecture search or chatbot components. The external teaching references are linked beside the specific MADALINE and MLP explanations. Both supplied source notebooks continue to guide the earlier workflow; the neural demonstrations are our syllabus-aligned additions.
+
+**Suggested topic commit message** — `feat: add neural learning demos and small ANN comparison`.
+
+**Files in the same contribution** — `olist_pipeline.ipynb`, `PIPELINE_NOTES.md`, `README.md`, and `SYLLABUS_ALIGNMENT.md`.
+
+**Commit status** — Current neural topic left uncommitted. The preceding forest topic is present in commit `af9d72e`. No staging or commit action was performed for this topic.
+
 ## Next notebook topic
 
-Complete compact Perceptron, ADALINE/MADALINE and forward/backpropagation learning demonstrations, then compare a small ANN on the existing retention task. Explain activations, loss, learning rate and training curves, with controlled complexity and matching reference notes. Keep final test scoring reserved. Customer segmentation follows the neural-learning topic.
+Explore historical RFM customer segments using training-fitted scaling and K-means, with a justified small choice of K. Include a compact hierarchical-clustering comparison on a documented sample. Describe observed segment profiles without treating unsupervised clusters as known customer labels. Develop the pipeline notes and viva answers with that topic, keeping final classification and recommendation test scoring reserved.

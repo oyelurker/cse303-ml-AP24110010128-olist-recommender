@@ -14,7 +14,7 @@ This is the working course-aligned scope and learning path. It distinguishes wha
 - The kickoff guide and project catalog add capstone expectations, including a comparative algorithm ladder and working deployment.
 - The Week 10 starter is a reference for recommender methods and understanding checks. Its content includes additions beyond the explicit theory list.
 - The public Kaggle notebook supplies implementation examples. Methods appearing there require separate syllabus and project justification.
-- The original comparison reviewed `PROJECT_PLAN.md`, the Gemini project notes, and 43 executed notebook code cells. The Unit II, Unit III and Random Forest implementations have since extended the notebook to 69 executed cells.
+- The original comparison reviewed `PROJECT_PLAN.md`, the Gemini project notes, and 43 executed notebook code cells. The recommender, classification, ensemble and neural-learning implementations have since extended the notebook to 75 executed cells.
 
 An algorithm being covered by the syllabus makes it suitable to study and use when it fits the task. It does not mean every lecture topic must become a separate application feature. The model comparisons and small learning demonstrations can live in the notebook, while the application uses the selected models.
 
@@ -50,8 +50,8 @@ Logistic Regression is not explicitly named in the supplied theory or lab topic 
 | SVM | Unit III, Lab 10 | A retention classifier comparison | Implemented in Section 9 | Keep a simple configuration. Explain margin, C, scaling, and the kernel used |
 | Random Forest | Unit V | A retention ensemble comparison | Implemented in Section 10 | Keep as the primary ensemble. Explain tree diversity, bagging, and feature subsets |
 | Basic boosting | Unit V | An optional additional ensemble comparison | Planned option | One simple example is enough if useful after Random Forest |
-| Small ANN and backpropagation | Unit IV, Lab 13 | Neural learning and a small retention comparison | Planned | Keep one small hidden-layer network and learning curves |
-| Perceptron, ADALINE and MADALINE | Unit IV, Labs 11 and 12 | Small learning demonstrations in the required neural progression | Planned | Keep the demonstrations compact and explain their updates. App deployment can use the selected model |
+| Small ANN and backpropagation | Unit IV, Lab 13 | Neural learning and a small retention comparison | Implemented in Section 11 | Keep one small hidden-layer network and learning curves |
+| Perceptron, ADALINE and MADALINE | Unit IV, Labs 11 and 12 | Small learning demonstrations in the required neural progression | Implemented in Section 11 | Keep the demonstrations compact and explain their updates. App deployment can use the selected model |
 | K-means | Unit V, Lab 14 | Explore historical RFM customer segments | Planned | Keep a small interpretable analysis with a justified K |
 | Hierarchical clustering | Unit V, Lab 15 | Compare customer-group structure on a documented manageable sample | Planned | Keep a compact illustration when it provides a useful comparison |
 | Simple score fusion | Unit V covers fixed and trained rule fusion | Optional content/CF score blend | Planned option | A fixed weighted blend is manageable after individual models work. Its specific recommendation design is an application of the general fusion idea |
