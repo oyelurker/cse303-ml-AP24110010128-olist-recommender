@@ -186,4 +186,4 @@ Current Logistic Regression validation ROC-AUC is about 0.516. It is an initial 
 
 ## Recommended next action
 
-The agreed technical notebook is complete, including core comparisons, RFM, bounded tuning, robustness, the understanding pack and frozen held-out evaluation. Use NOTEBOOK_HANDOFF.md to extract reusable preparation and inference components, then build the application. Keep weak retention discrimination and limited recommendation eligibility visible in the interface and viva. Student study and rehearsal remain necessary; optional extra algorithms are deferred.
+The agreed technical notebook is complete, including core comparisons, RFM, bounded tuning, robustness, the understanding pack and frozen held-out evaluation. The reusable components and first local application are now implemented; use APP_REFERENCE.md for the module walkthrough, activity/reward rules and verification results. Keep weak retention discrimination and limited recommendation eligibility visible in the interface and viva. Student study and rehearsal remain necessary; optional extra algorithms are deferred.

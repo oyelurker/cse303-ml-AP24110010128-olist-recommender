@@ -1,6 +1,6 @@
 # Notebook completion and implementation handoff
 
-The core notebook is complete: 92 executed code cells, 24 embedded figures, final honest held-out results, understanding logs and reproducibility records. Application development is the next stage. No app or chatbot framework has been selected or implemented.
+The core notebook is complete: 92 executed code cells, 24 embedded figures, final honest held-out results, understanding logs and reproducibility records. The first local application is now implemented in Streamlit with SQLite and a bounded assistant. This document retains the frozen notebook contracts; APP_REFERENCE.md describes their extracted implementation and tests.
 
 ## Frozen choices
 
@@ -53,7 +53,7 @@ RFM K=2 exactly separates 30,014 single-order customers and 856 multiple-order c
 | `build_rfm_snapshot(cutoff)` and fitted `rfm_scaler`/`rfm_kmeans` | Historical orders to RFM row and descriptive segment | Shared calendar reference differs from the fixed-age classifier; no assignment without purchase history |
 | Evaluation functions | Known future relevance to metrics | Keep evaluation labels and the intentionally leaky engine out of runtime inference |
 
-The reusable app interface is a later extraction task. No standalone Python app modules or saved-model bundle are created here. The notebook provides verified reference behavior and result contracts.
+The reusable modules are now extracted into olist_shop/ and app.py. scripts/build_artifacts.py creates the fitted local bundle. The notebook provides the verified reference behavior and result contracts, with independent parity checks in scripts/verify_notebook_parity.py.
 
 ## Time and catalog rules
 
@@ -78,6 +78,6 @@ Open `olist_pipeline.ipynb` in VS Code, select the `.venv` kernel, use the repos
 
 The final fresh run passed every code cell. Figures were visually checked. Normal reruns reproduce the fixed experiment; changing decisions after reading the test would require a new independent evaluation design.
 
-## First implementation work
+## Implementation status
 
-Extract preparation, historical feature building, frozen inference and honest recommendation helpers into reusable modules. Verify parity with the notebook before choosing and wiring an interface. Initial supported interactions can show historical customer summaries, descriptive segments, experimental repeat scores and recommendations with reasons. A bounded chatbot should call those functions and identify missing information. Avoid presenting weak scores as confident business decisions.
+The first implementation extracts preparation, historical feature building, frozen inference and honest recommendation helpers. Independent parity checks passed against notebook features, model probabilities and recommendation lists. The Streamlit interface adds persistent activity/cart/checkout, rule-based rewards, descriptive insights and a bounded assistant. APP_REFERENCE.md records setup, limitations and eleven passing tests. Weak repeat scores remain explicitly experimental.

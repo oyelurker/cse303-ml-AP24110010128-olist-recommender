@@ -1,18 +1,41 @@
 # Olist Product Recommendation and Customer Retention
 
-A machine learning capstone project using the Olist Brazilian E-Commerce dataset to explore customer behavior, recommend products, and predict repeat purchases. A conversational application will build on the verified notebook pipeline.
+A machine learning capstone project using the Olist Brazilian E-Commerce dataset to explore customer behavior, recommend products, and predict repeat purchases. A local shopping application now uses the verified pipeline, with activity-based recommendations, a demo cart, rewards and a bounded assistant.
 
 ## Project objective
 
-Help a direct-to-consumer business understand its customers and explore retention opportunities. The proposed application will let a marketing employee inspect customer history, view product recommendations, and ask questions about customer insights and model outputs.
+Help a direct-to-consumer business understand its customers and explore retention opportunities. The application supports shopper discovery, simulated orders and rewards, plus a customer-insights view for reviewing historical behavior and the course models.
 
 The project corresponds to catalog topic 9.2, Tier A E-commerce Recommendation.
 
 See [the syllabus comparison and viva walkthrough](SYLLABUS_ALIGNMENT.md) for the working model scope, exact course mappings, supporting extensions, and study priorities.
 
+## Run the shopping application
+
+Use Python 3.12 and the project virtual environment. If `.venv` does not exist, create it with `python -m venv .venv` first.
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-app-lock.txt
+.\.venv\Scripts\python.exe scripts/build_artifacts.py
+.\.venv\Scripts\python.exe -m streamlit run app.py --server.address 127.0.0.1 --server.port 8501
+```
+
+Open [the local demo](http://127.0.0.1:8501). Artifacts are built once and then loaded without notebook execution or retraining on each interaction.
+
+The app includes personalized/interest/cart suggestions, product similarity, evidence-backed Other shoppers also bought, familiar categories, Buy again, simulated checkout, rule-based rewards, customer insights and function-backed chat. Choose a prepared customer persona or create a fresh demo shopper. The clock starts on 1 June 2018 and can advance to demonstrate return and expiry scenarios.
+
+[Application reference and viva notes](APP_REFERENCE.md) explain the modules, event flow, rules and testing. [Application plan](APP_PLAN.md) records the intended screens and boundaries. Original CSVs remain immutable; local artifacts and SQLite activity are ignored by Git. Product labels, checkout and offers are clearly identified as demonstrations.
+
+Validation passed: **11 automated tests**, all **71,105 feature rows**, complete validation/test probability vectors, and **202 recommendation lists** checked against the notebook. Run checks with:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/verify_notebook_parity.py
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
 ## Current status
 
-The agreed core notebook is complete: **92 executed code cells and 24 figures**, with passed checks, final held-out evaluation, worked learning examples, an isolated leakage experiment, decision/problem/AI-use logs and reproducibility records. The application and chatbot are the next stage.
+The agreed core notebook is complete: **92 executed code cells and 24 figures**, with passed checks, final held-out evaluation, worked learning examples, an isolated leakage experiment, decision/problem/AI-use logs and reproducibility records. The first local shopping application and bounded assistant are also implemented and tested. They preserve the notebook benchmark results.
 
 Read [the implementation handoff](NOTEBOOK_HANDOFF.md) for frozen choices, function contracts, results and limitations. [Pipeline notes](PIPELINE_NOTES.md) explain each completed topic and its viva questions.
 

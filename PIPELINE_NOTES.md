@@ -1988,3 +1988,36 @@ All 92 code cells executed sequentially and 24 figures are embedded, with passed
 **Files to keep together** — notebook, pipeline notes, README, project plan, syllabus alignment, handoff, input manifest and notebook environment lock. The preceding comparison/tuning changes are still included in this uncommitted contribution.
 
 **Commit status** — No staging or commit action performed. The agreed technical notebook scope is complete. Optional extra algorithms remain deferred; student study, application development and final project presentation are separate tasks.
+
+## Application contribution — Shopping, activity, rewards and assistant
+
+The first local Streamlit application is implemented. Its detailed pipeline explanations and viva questions live in APP_REFERENCE.md so this notebook history remains readable. APP_PLAN.md records the researched product patterns and acceptance sequence. The notebook's 92 code cells and benchmark outputs were not modified.
+
+### Completed together
+
+- Extracted preparation and fixed-age feature construction into olist_shop/data.py, preserving the notebook's row grains, timestamps, feature schema and first-review policy.
+- Added one-time artifact building for frozen Logistic Regression, historical RFM and content/popularity ranking. Verified all nine CSV hashes before saving. App startup loads these local artifacts rather than training again.
+- Added separately labeled personalized, interest-based, cart-context, similar-item and shared-buyer shelves. Shared-buyer claims require two actual historical buyers; insufficient evidence has a separately labeled popularity alternative.
+- Added persistent per-customer interests, carts, activity and simulated orders in SQLite. Switching customers isolates stored history. Buy again intentionally includes prior purchases, while discovery excludes purchases and cart items.
+- Added welcome, frequent-shopper and welcome-back rules with explicit minimum values, caps, expiry, cooldown and single redemption. Coupons use known completed-order evidence, not the weak repeat model.
+- Made checkout transactional and idempotent, using server catalog prices and integer cents. Concurrent duplicate requests produce one order. A cancellation removes the demo order from qualification without restoring redeemed coupons.
+- Added customer insights and a bounded assistant that calls the same service functions as the interface. Historical repeat scores keep their original 30-day snapshot date and experimental-quality label.
+- Added a shared historical demo clock, named real-data personas, a fresh-shopper flow and local run instructions.
+
+### Verification evidence
+
+The independent parity script passed for all 71,105 feature rows, the full validation/test probability vectors and 202 top-ten recommendation lists. It executes selected notebook reference calculations only during QA. Serving code never executes the notebook. Frozen held-out AP/AUC values remain exactly those already reported.
+
+Eleven tests passed. They cover the actual Streamlit browse/apply-coupon/checkout/Buy again/insights/chat/customer-switch flow, recommendation/profile changes, qualifying personas, co-purchase support, store persistence, wrong coupon owner, exact expiry, minimum/cap values, cooldown, cancellation and simultaneous duplicate checkout. Python compile checks and Git whitespace checks passed. The live local browser preview was opened and visually inspected.
+
+A real UI-test harness issue was fixed: AppTest resolves relative script paths against the calling test file, so tests/app.py was incorrectly sought. Passing the absolute repository app.py path fixed it. Streamlit's Windows test event loop also needed an approved process outside the Codex network sandbox; this was an execution-environment limitation, not a reason to change the app logic. Deprecated use_container_width arguments were replaced with width='stretch'.
+
+### Reproduction and contribution boundary
+
+See README.md for the three commands to install the pinned application environment, build local artifacts and start Streamlit. requirements-app-lock.txt records the verified environment; the notebook lock is preserved. Artifacts and the SQLite database are regenerated local files and remain ignored by Git. APP_REFERENCE.md describes every module and the current limitations.
+
+The first local version supports the agreed core shopping/rewards/assistant loop. Same-order Frequently bought together, real authentication/payments/inventory, external LLM integration and deployment are separate or optional scope. App activity does not alter the source CSVs or make new claims about the notebook test results. The user-provided self.txt is untouched.
+
+**Suggested contribution commit** — `feat: add personalized shopping demo with rewards and assistant`.
+
+**Commit status** — Changes are ready for user review and remain uncommitted. Reference notes, application code, tests, setup files and the app plan belong in the same contribution.

@@ -142,8 +142,8 @@ Customer figures, predictions, and recommendations will come from the underlying
 - Repeat-purchase horizon, chronological partitions and final evaluation are fixed in the notebook.
 - Product eligibility, sparse-history coverage and fallback behavior are measured and documented.
 - Frozen model results and weak predictive quality are recorded relative to compatible baselines.
-- Application framework, chatbot technology, and deployment arrangement.
+- Streamlit, SQLite and a bounded function-backed assistant implement the first local version. Deployment and external LLM integration remain separate decisions.
 
 ## Current status
 
-Data preparation, EDA, historical targets and partitions, core classifier and recommendation comparisons, neural-learning demonstrations, and RFM segmentation are implemented. Consolidated validation comparison, bounded tuning and one feature ablation are also complete. Robustness, understanding logs, locked final test evaluation, conclusions and a clean full run are complete. Application development is next, based on the documented notebook handoff and limited predictive performance. The notebook, README and pipeline notes record measured results and limitations. The application follows the verified model comparisons and evaluation.
+Data preparation, EDA, historical targets and partitions, core classifier and recommendation comparisons, neural-learning demonstrations, and RFM segmentation are implemented. Consolidated validation comparison, bounded tuning and one feature ablation are also complete. Robustness, understanding logs, locked final test evaluation, conclusions and a clean full run are complete. The first local shopping application is implemented with tested notebook parity, persistent demo activity, recommendations, rule-based rewards, insights and a bounded assistant. Real deployment and any optional extensions remain separate product decisions. The notebook, README and pipeline notes record measured results and limitations. The application follows the verified model comparisons and evaluation.
