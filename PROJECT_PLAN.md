@@ -135,4 +135,4 @@ Customer figures, predictions, and recommendations will come from the underlying
 
 ## Current status
 
-Data preparation, EDA, historical targets and partitions, and baseline models are implemented. Comparative syllabus models are underway. The notebook, README, and pipeline notes record executed results and current progress. The application follows the verified model comparisons and evaluation.
+Data preparation, EDA, historical targets and partitions, core classifier and recommendation comparisons, neural-learning demonstrations, and RFM segmentation are implemented. Limited tuning, remaining understanding checks and locked final test evaluation precede application development. The notebook, README and pipeline notes record measured results and limitations. The application follows the verified model comparisons and evaluation.

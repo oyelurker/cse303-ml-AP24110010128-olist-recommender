@@ -1640,6 +1640,158 @@ This topic uses existing NumPy, SciPy and scikit-learn dependencies. It adds no 
 
 **Commit status** — Current neural topic left uncommitted. The preceding forest topic is present in commit `af9d72e`. No staging or commit action was performed for this topic.
 
+## Topic 12 — Historical RFM segmentation
+
+### Purpose and customer population
+
+Explore descriptive customer groups using Unit V K-means and hierarchical clustering. These groups have no known ground-truth customer labels. They do not predict repeat purchases or establish loyalty, customer lifetime value or marketing effectiveness.
+
+The learning snapshot is 1 November 2017. Include every customer with an item-bearing placed order strictly before that date. Use the already prepared order-level table and avoid filtering on final delivered status. This segmentation population differs from the retention classifier's fixed-age cohort. A shared calendar snapshot lets recency describe actual inactivity across customers of different observed ages.
+
+A later snapshot on 1 April 2018 demonstrates assignments using the frozen scaler and cluster centers. The later population includes previously observed and newly observed customers. Neither snapshot uses repeat labels. Final classification and recommendation test results remain reserved.
+
+### RFM definitions and preparation
+
+| Field | Definition and interpretation |
+|---|---|
+| Recency | Fractional days from the shared snapshot date to the customer's latest strictly earlier order. Lower values indicate a more recent observed order. |
+| Frequency | Distinct historical order count. Repeated product rows do not inflate it because preparation starts from one row per order. |
+| Monetary | Sum of historical merchandise item value in BRL, excluding freight. It is observed order value, without claiming net realized revenue after refunds or cancellations. |
+
+The builder groups by stable customer_unique_id, records the latest purchase timestamp and sorts identifiers for deterministic matrix positions. All available earlier item-bearing orders contribute. Customers without observed purchases are outside this purchase-based segmentation. No automatic fictitious RFM row is created for a brand-new customer.
+
+Apply log1p separately to R, F and M, then StandardScaler. Log compression limits the influence of skewed spending and frequency. Standardization gives each transformed coordinate comparable units. Both choices affect the resulting groups and are declared assumptions. Fit the scaler only on the historical learning snapshot; the later snapshot calls transform without refitting.
+
+### Notebook blocks and sequence
+
+| Block | Work performed and reason |
+|---|---|
+| `prepare-rfm-segmentation` | Builds learning and later RFM snapshots from strictly earlier orders. Calculates log features, fits the learning scaler and transforms both populations. Prints population summaries and the single-order share. |
+| `select-rfm-kmeans` | Fits K=2 through 6 with ten initializations and seed 42. Calculates inertia and silhouette using the same fixed 1,500 learning rows. Selects the highest sampled silhouette with smaller K as an exact-tie rule. |
+| `profile-and-apply-rfm-segments` | Summarizes learning clusters in raw RFM units. Applies the frozen model to the later snapshot. Independently calculates one nearest-center assignment. Plots standardized centers and a sampled two-coordinate view. |
+| `compare-rfm-hierarchical` | Samples 600 learning customers, builds a Ward linkage hierarchy in the same transformed space, cuts at selected K and compares assignments on that sample. Plots a truncated dendrogram. |
+| `validate-rfm-segmentation` | Verifies timestamp cutoffs, unique customers, monetary/order reconciliation, scaler fit statistics, cluster counts, inertia arithmetic, nearest-center assignment and hierarchy dimensions. |
+
+### K-means and the K decision
+
+K-means alternates assigning points to nearest centers and updating centers from assigned points. Its objective is within-cluster sum of squared distances. Ten initializations reduce sensitivity to an unlucky initial set of centers, while one fixed seed makes this experiment reproducible.
+
+Compare K=2,3,4,5,6. Inertia generally decreases as more centers become available, so a lower value alone does not establish a better business segmentation. Silhouette evaluates separation and compactness from distances. Here it is measured on the same 1,500 learning customers for each candidate. It is an internal selection measurement, not a holdout accuracy score. The [scikit-learn clustering guide](https://scikit-learn.org/stable/modules/clustering) explains these evaluation concepts.
+
+Choose the candidate with the largest sampled silhouette and inspect cluster sizes and original-unit medians. Large separation can reflect an unusual frequency tail rather than several meaningful marketing personas. One sampled criterion and seed do not establish a universal best K. A different date, history policy, scaling or feature weighting may change the groups.
+
+### Reading profiles and later assignments
+
+Cluster numbers are arbitrary identifiers. The profile table reports customer count, population share and medians of R, F and M. Use these measured descriptions rather than assigning unverified labels such as loyal or high lifetime value.
+
+The center heatmap uses standardized log-RFM coordinates. It is different from the table of raw-unit medians. Positive coordinates mean above the learning mean in that transformed feature, and negative coordinates mean below. The two-dimensional scatter displays only recency and monetary value on log axes. Frequency still contributes to clustering and is omitted from that view.
+
+For one customer, calculate squared distances from its transformed three-coordinate vector to every fitted center. The smallest distance reproduces the model assignment. This is a worked arithmetic check rather than a prediction-quality measurement.
+
+The later snapshot is assigned with the original scaler and centers. Its segment shares are descriptive. Population composition and histories have changed, so a share change alone does not establish customer migration, cluster stability or model quality. These segment IDs are not added to the already fitted retention classifiers.
+
+### Hierarchical comparison
+
+Use a fixed 600-row sample to bound pairwise memory and computation. Ward linkage merges groups according to the increase in within-cluster squared error. Cut the resulting hierarchy at the selected K. The truncated dendrogram shows the last twelve merged groups; parenthesized leaf values are sample counts. Vertical heights are linkage distances in the transformed space, not prices or purchase probabilities.
+
+Compare the Ward partition with the full-history K-means assignments restricted to exactly these 600 customers. Calculate both silhouettes on the same sample and adjusted Rand agreement between partitions. Agreement does not require matching numeric IDs and does not make either method ground truth. Ward is fitted on a sample while K-means was fitted on the full learning population, so the comparison is illustrative rather than a controlled full-scale algorithm contest.
+
+This Ward exercise does not supply a native new-customer prediction function. The application can use the fitted K-means centers for supported RFM assignments.
+
+### Code reference
+
+| Method | Meaning |
+|---|---|
+| `groupby(...).agg` | Summarizes historical orders once per stable customer. |
+| `nunique` | Counts distinct order IDs for frequency. |
+| `np.log1p` | Computes log(1+x) for nonnegative RFM values. |
+| `StandardScaler.fit_transform` | Learns historical log-feature means and variances, then standardizes. |
+| `StandardScaler.transform` | Applies frozen historical scaling to later rows. |
+| `KMeans(n_init=10)` | Runs ten initializations and retains the lowest-inertia solution for that K. |
+| `inertia_` | Stores total squared distance to assigned centers. |
+| `silhouette_score` | Measures internal cluster compactness and separation from pairwise distances. |
+| `predict` | Assigns a transformed customer to the closest existing K-means center. |
+| `linkage(method="ward")` | Builds the sampled agglomerative hierarchy. |
+| `cut_tree` | Extracts a chosen cluster count from the hierarchy. |
+| `adjusted_rand_score` | Measures agreement between two partitions, adjusted for chance. |
+| `dendrogram(truncate_mode="lastp")` | Displays the final part of the merge hierarchy compactly. |
+
+### Viva questions and short answers
+
+1. What is RFM? Recency, frequency and monetary summaries of observed purchases.
+2. Why use customer_unique_id? It links a stable customer across order-specific customer IDs.
+3. Why count distinct orders? Product line items are not independent purchases.
+4. Why use a common date? Recency needs a shared calendar reference to describe inactivity across customers.
+5. Why log and standardize? Reduce skew and prevent raw BRL units from dominating Euclidean distances.
+6. What does K-means minimize? Sum of squared distances from each point to its assigned center.
+7. Why try several K values? The number of groups is a modeling choice without known segment labels here.
+8. Is silhouette accuracy? No. It describes geometric separation within the supplied feature representation.
+9. Why do cluster IDs have no business meaning? The algorithm assigns arbitrary group numbers; their measured profiles provide interpretation.
+10. What is Ward linkage? A hierarchical merging criterion based on the increase in within-cluster squared error.
+11. What does a dendrogram show? A sequence of merges and their linkage distances.
+12. Why sample hierarchical clustering? Pairwise work grows rapidly with population size.
+13. Is high agreement between methods proof of true segments? No. Agreement only means the partitions resemble each other.
+14. Can we assign a later customer with K-means? Yes, after computing the same historical features and applying the frozen scaler.
+15. What happens with no purchase history? This purchase-based segmentation has no valid RFM row for that person.
+16. Are these segments repeat probabilities? No. Clustering describes groups without learning the repeat target.
+17. Why keep original-unit profile medians? They are easier to explain than standardized coordinates.
+18. Why not call a cluster loyal? The observed profile alone does not establish future loyalty or business outcomes.
+
+### Measured populations and K selection
+
+The learning snapshot contains 30,870 customers. The later assignment snapshot contains 63,881. In the learning snapshot, 97.2271 percent of customers have one observed order. Median recency is 112.223 days, median frequency is one order and median monetary value is BRL 89.00. This limited frequency variation constrains the richness of RFM segmentation.
+
+| K | Inertia | Fixed-sample silhouette | Smallest group | Largest group |
+|---|---|---|---|---|
+| 2 | 62836.363665 | 0.738245 | 856 | 30014 |
+| 3 | 42912.407774 | 0.378622 | 856 | 22276 |
+| 4 | 27851.293639 | 0.374558 | 856 | 12247 |
+| 5 | 23147.245539 | 0.335718 | 856 | 11663 |
+| 6 | 19501.304988 | 0.343591 | 856 | 9813 |
+
+The declared silhouette rule selects K=2. Inertia continues to decrease at larger K, illustrating why simply choosing the lowest inertia would favor extra centers. All five configurations stop before their 300-iteration cap. The selected result is tied to this date, feature transformation and sampled criterion.
+
+### Measured profiles and assignment example
+
+| Segment | Customers | Share | Median recency days | Median frequency | Median merchandise BRL |
+|---|---|---|---|---|---|
+| 0 | 856 | 0.0277 | 94.7445 | 2 | 176.43 |
+| 1 | 30014 | 0.9723 | 112.5167 | 1 | 85.00 |
+
+The smaller segment has more observed orders and higher median merchandise spend. The profile does not prove future loyalty. Frequency is the strongest center difference: its standardized log coordinate is about 5.76 for segment 0 and -0.16 for segment 1. The two-coordinate scatter omits this feature, so visible recency/spending overlap is compatible with strong three-dimensional separation.
+
+The worked customer's squared distances to centers 0 and 1 are approximately 37.456666 and 1.003445. Both the independent nearest-center calculation and the model assign segment 1.
+
+With the original scaler and centers, later assignment shares are approximately 2.99 percent for segment 0 and 97.01 percent for segment 1. These are assignments over a later, larger population. They are not a per-customer transition analysis or a supervised validation result.
+
+### Measured Ward comparison
+
+Both partitions have silhouette 0.733413 on the same 600 sampled customers. Adjusted Rand agreement is 1.0. K-means segment 0 contains the same 22 sampled customers as Ward segment 1, while K-means segment 1 contains the same 578 customers as Ward segment 0. This demonstrates why numeric group IDs do not need to match for partitions to agree.
+
+The comparison corroborates one simple historical split. It does not independently establish true business groups or predictive accuracy. Frequency sparsity and the chosen standardized geometry remain central limitations. Ward uses only the sampled learning customers and is retained as a compact course demonstration.
+
+### Frequency audit and interpretation limit
+
+The explicit cross-tab confirms that segment 0 contains zero single-order and 856 multiple-order customers. Segment 1 contains 30,014 single-order and zero multiple-order customers. This model reproduces the single-versus-multiple observed-order distinction exactly in the learning snapshot. The high silhouette therefore reflects a simple frequency-driven separation. It should not be presented as discovery of complex marketing personas or future loyalty.
+
+This finding is useful for the viva: a strong internal clustering score can describe a simple structural feature without proving business usefulness. Keep neutral IDs and measured profiles. No segment IDs are added to the existing supervised classifiers, and no campaign recommendation is claimed from this experiment alone.
+
+### Verification and topic completion
+
+The full notebook run executed all 80 code cells and passed. Twenty-one figures are embedded, with no error outputs. After adding the frequency cross-tab and centering the heatmap color scale at zero, reran the five segmentation blocks from freshly rebuilt prepared order data. All topic checks passed again. Visually inspected the three new figures and the updated profile plot.
+
+Verified unique customer snapshots, strictly historical latest-order timestamps, nonnegative finite RFM values and positive order counts and monetary values. Summed distinct-order counts and merchandise values reconcile with the corresponding historical source orders at both snapshot dates. Learning scaler means, variances and sample counts match the log-transformed learning data, and later assignments use the frozen scaler and centers.
+
+Verified candidate K values, fixed sample uniqueness, valid silhouette range, group totals, shares and inertia against manually summed center distances. The worked assignment matches the nearest center. The 600-row Ward linkage has the expected 599 merges, finite nonnegative distances and selected cluster count. New segmentation blocks do not reference classification target arrays or test inputs. Final supervised and recommendation test performance remains reserved.
+
+This topic uses the existing scikit-learn and SciPy dependencies. The Kaggle reference continues to inform the RFM and segmentation workflow, while our common-date historical boundary, sampled evaluation and frequency audit document project-specific choices.
+
+**Suggested topic commit message** — `feat: add historical RFM segmentation and clustering viva notes`.
+
+**Files in the same contribution** — `olist_pipeline.ipynb`, `PIPELINE_NOTES.md`, `README.md`, `SYLLABUS_ALIGNMENT.md`, and `PROJECT_PLAN.md`.
+
+**Commit status** — Current segmentation topic left uncommitted. The preceding neural topic is present in commit `da395ad`. No staging or commit action was performed for this topic.
+
 ## Next notebook topic
 
-Explore historical RFM customer segments using training-fitted scaling and K-means, with a justified small choice of K. Include a compact hierarchical-clustering comparison on a documented sample. Describe observed segment profiles without treating unsupervised clusters as known customer labels. Develop the pipeline notes and viva answers with that topic, keeping final classification and recommendation test scoring reserved.
+Consolidate comparable validation results and choose a small, explainable tuning exercise for the strongest justified models. Complete the remaining understanding checks and feature-analysis needs before freezing model and threshold choices. Only then score the reserved tests and extract the reusable application pipeline. Keep the application framework and bounded chatbot work after those decisions.
