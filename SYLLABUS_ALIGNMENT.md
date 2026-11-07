@@ -14,7 +14,7 @@ This is the working course-aligned scope and learning path. It distinguishes wha
 - The kickoff guide and project catalog add capstone expectations, including a comparative algorithm ladder and working deployment.
 - The Week 10 starter is a reference for recommender methods and understanding checks. Its content includes additions beyond the explicit theory list.
 - The public Kaggle notebook supplies implementation examples. Methods appearing there require separate syllabus and project justification.
-- The original comparison reviewed `PROJECT_PLAN.md`, the Gemini project notes, and 43 executed notebook code cells. The Unit II and Unit III implementations have since extended the notebook to 64 executed cells.
+- The original comparison reviewed `PROJECT_PLAN.md`, the Gemini project notes, and 43 executed notebook code cells. The Unit II, Unit III and Random Forest implementations have since extended the notebook to 69 executed cells.
 
 An algorithm being covered by the syllabus makes it suitable to study and use when it fits the task. It does not mean every lecture topic must become a separate application feature. The model comparisons and small learning demonstrations can live in the notebook, while the application uses the selected models.
 
@@ -48,7 +48,7 @@ Logistic Regression is not explicitly named in the supplied theory or lab topic 
 | Collaborative filtering | Unit II | Recommend from customer-product purchase patterns | Implemented in Section 8 | Core project method. Start with item-based similarity |
 | Naive Bayes | Unit III, Lab 9 | A retention comparison with stated assumptions | Implemented in Section 9 | Keep a justified variant. Explain conditional independence and feature assumptions |
 | SVM | Unit III, Lab 10 | A retention classifier comparison | Implemented in Section 9 | Keep a simple configuration. Explain margin, C, scaling, and the kernel used |
-| Random Forest | Unit V | A retention ensemble comparison | Planned | Keep as the primary ensemble. Explain tree diversity, bagging, and feature subsets |
+| Random Forest | Unit V | A retention ensemble comparison | Implemented in Section 10 | Keep as the primary ensemble. Explain tree diversity, bagging, and feature subsets |
 | Basic boosting | Unit V | An optional additional ensemble comparison | Planned option | One simple example is enough if useful after Random Forest |
 | Small ANN and backpropagation | Unit IV, Lab 13 | Neural learning and a small retention comparison | Planned | Keep one small hidden-layer network and learning curves |
 | Perceptron, ADALINE and MADALINE | Unit IV, Labs 11 and 12 | Small learning demonstrations in the required neural progression | Planned | Keep the demonstrations compact and explain their updates. App deployment can use the selected model |

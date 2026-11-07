@@ -1360,6 +1360,143 @@ The notebook uses existing dependencies. This topic adds no application framewor
 
 **Commit status** — Left uncommitted at the user's request. The preceding recommendation topic is also still uncommitted. No Git commit or staging action was performed.
 
+## Topic 10 — Random Forest ensemble comparison
+
+### Purpose and data boundary
+
+Use Unit V bagging and Random Forest concepts to extend the repeat-purchase comparison. Training has 14,362 customers and 140 repeats. Validation has 11,768 customers and 97 repeats. The target, historical features and chronological partitions are unchanged. Only training rows are used to fit preprocessing and trees. Final test scoring remains reserved.
+
+### Configurations and controlled comparisons
+
+| Configuration | Trees | Maximum depth | Minimum leaf rows | Class weighting |
+|---|---|---|---|---|
+| RF ordinary depth=6 | 200 | 6 | 20 | None |
+| RF balanced depth=6 | 200 | 6 | 20 | Balanced within each bootstrap sample |
+| RF balanced depth=12 | 200 | 12 | 20 | Balanced within each bootstrap sample |
+
+All use entropy, square-root feature sampling, training-size bootstrap samples and random seed 42. Two worker threads bound parallel work. Comparing the two depth-six forests isolates weighting. Comparing the balanced forests changes maximum depth while keeping the other settings fixed. Three declared configurations keep the comparison manageable. They are not an exhaustive search or an established optimum.
+
+Clone the previous tree preprocessor. Numeric values use training-median imputation and missingness indicators, with scaling bypassed. State uses the training-fitted one-hot encoder. Tree splits compare ordered values with thresholds, so numeric standardization is unnecessary here. These transformed columns are the features considered by split-level random sampling.
+
+### Notebook blocks and processing sequence
+
+| Block | What the code does and why |
+|---|---|
+| `fit-random-forests` | Declares three configurations, creates an independent cloned preprocessing pipeline for each and fits 200-tree ensembles on training rows. |
+| `evaluate-random-forests` | Computes training and validation probabilities. Reuses the verified classification helper at threshold 0.5. Reports AP, ROC-AUC, precision, recall, F1, confusion counts and mean fitted depth. Plots training/validation AP and validation ROC-AUC. |
+| `worked-forest-bootstrap-and-average` | Inspects three real bootstrap samples, counts duplicate and omitted rows, and verifies the ensemble's highest validation score by averaging all 200 tree probabilities. Displays the first ten tree outputs for readability. |
+| `inspect-forest-feature-importance` | Reads normalized training impurity importances from the balanced depth-six model. Prints and plots the top ten transformed features, with limitations explained. |
+| `validate-random-forests` | Checks preprocessing fit statistics, tree count, leaf/depth limits, bootstrap positions and root counts, probability ranges, confusion totals and manual averaging agreement. |
+
+### Bagging and feature randomness
+
+A bootstrap sample draws N training positions with replacement. Some customers appear more than once and others are omitted from that tree. A drawn row can therefore contribute multiple times to fitting. The tree's distinct sample count differs from the total number of draws.
+
+The expected fraction of distinct rows is `1 - (1 - 1/N)^N`, approaching about 0.632. This is an expectation rather than an exact required fraction. Each tree receives a different random sample. At each split, `max_features="sqrt"` selects a random subset of transformed columns to consider, adding diversity between trees. This is split-level feature sampling, not one permanent subset for each tree.
+
+Averaging different trees can reduce variance compared with one fitted tree. Correlated trees, weak input signals and biased data still limit performance. A forest cannot correct future leakage. The omitted bootstrap rows are training-period observations and do not replace the held-out chronological validation period. No out-of-bag score is used for model selection here.
+
+### Weighted leaves and the ensemble prediction
+
+With ordinary class weights, each bootstrap draw has the same class-based weight. With `balanced_subsample`, inverse-frequency class weights are recalculated from each tree's sampled labels. This increases the influence of rare repeats during tree fitting. Weighted class frequencies enter impurity calculations and leaf probabilities.
+
+The repeat probability is the arithmetic mean of the 200 individual tree repeat probabilities. A hard majority vote would first threshold every tree and discard its probability magnitude, so it can differ from averaging probabilities. Our worked example prints both quantities, but the independent verification compares the probability mean with the actual pipeline probability.
+
+The worked customer is chosen by highest balanced depth-six validation score, for reproducible arithmetic. It is not an unbiased example of typical behavior. Class weighting can shift probabilities away from natural repeat prevalence, and averaging does not guarantee calibration.
+
+### Training impurity importance
+
+`feature_importances_` describes normalized impurity reduction across fitted splits and trees. Larger values mean the feature contributed more to reducing training impurity in this model. They do not establish causal effects or guarantee improved holdout performance.
+
+Continuous features can offer more candidate split points than binary indicators. Correlated history and spending features can share or exchange importance. Individual state columns are not automatically grouped into a single state importance. Weighting, depth and the encoded representation affect the output. Interpret the plot together with validation results and these limitations.
+
+### Code reference
+
+| Method or setting | Meaning |
+|---|---|
+| `RandomForestClassifier` | Fits an ensemble of randomized classification trees. |
+| `n_estimators=200` | Sets the number of fitted trees. |
+| `bootstrap=True` | Samples training rows with replacement for each tree. |
+| `max_features="sqrt"` | Considers roughly the square root of transformed feature count at each split. |
+| `max_depth` | Limits tree capacity by restricting split levels. |
+| `min_samples_leaf=20` | Requires at least 20 distinct sampled training rows per leaf. |
+| `class_weight="balanced_subsample"` | Recomputes inverse-frequency class weights within each bootstrap sample. |
+| `estimators_` | Contains the fitted individual trees. |
+| `estimators_samples_` | Provides the training position draws used by each tree. |
+| `np.unique(sample)` | Identifies distinct rows drawn for a bootstrap sample. |
+| `tree_.n_node_samples[0]` | Reports distinct sampled rows represented at a tree's root. |
+| `predict_proba` and `.mean()` | Obtain tree probability estimates and independently reproduce forest averaging. |
+| `feature_importances_` | Reports normalized training impurity-based feature usage. |
+
+### Viva questions and short answers
+
+1. What is bagging? Fit models to different bootstrap samples and aggregate their outputs.
+2. How is a Random Forest different from ordinary bagged trees? It also samples candidate features at each split to increase tree diversity.
+3. What does sampling with replacement mean? A training row can be selected repeatedly in one bootstrap sample.
+4. Does every tree see every training customer? Usually not. Some rows are omitted and some are repeated.
+5. Why approximately 63 percent unique rows? The probability a row appears at least once is `1-(1-1/N)^N` for N independent draws.
+6. Does a forest need numeric standardization? Threshold-based trees do not require standardized numeric units, so our forest bypasses scaling.
+7. What limits overfitting here? Maximum depth, minimum leaf size, random feature selection and averaging, assessed through validation.
+8. Does adding trees always fix overfitting? More trees stabilize averaging but do not remove all bias or excessive base-tree complexity.
+9. How is the forest probability calculated? Average all individual tree class probabilities.
+10. Is that a hard majority vote? No. Averaging retains the probability magnitude of each tree's leaf estimate.
+11. What does balanced subsample weighting do? It weights sampled classes inversely to their counts separately for each tree.
+12. Why can weighted probabilities be misleading? The training objective changes class influence, so the scores may not reflect natural prevalence.
+13. Does a high training AP establish generalization? No. Chronological validation is needed for unseen-period performance.
+14. What does impurity importance measure? How much a transformed feature reduced training impurity across the fitted trees.
+15. Does importance establish causation? No. Correlation, feature cardinality and representation affect it.
+16. Why keep the test set reserved? Model and threshold choices must be finalized before independent final evaluation.
+
+### Executed validation results
+
+| Forest | Training AP | Validation AP | ROC-AUC | Precision at 0.5 | Recall at 0.5 | F1 at 0.5 |
+|---|---|---|---|---|---|---|
+| Ordinary depth 6 | 0.071150 | 0.012924 | 0.524081 | 0 | 0 | 0 |
+| Balanced depth 6 | 0.093607 | 0.010549 | 0.515613 | 0.011155 | 0.144330 | 0.020710 |
+| Balanced depth 12 | 0.228160 | 0.010312 | 0.515023 | 0.018421 | 0.072165 | 0.029350 |
+
+| Forest | True negatives | False positives | False negatives | True positives | Positive decisions |
+|---|---|---|---|---|---|
+| Ordinary depth 6 | 11671 | 0 | 97 | 0 | 0 |
+| Balanced depth 6 | 10430 | 1241 | 83 | 14 | 1255 |
+| Balanced depth 12 | 11298 | 373 | 90 | 7 | 380 |
+
+The ordinary forest has the highest AP among these forests, but predicts no repeats at 0.5. The balanced depth-six model detects 14 of 97 repeats while raising 1,241 false positives. The deeper balanced model detects seven repeats with 373 false positives. Class weighting and depth alter error trade-offs without delivering strong prediction quality.
+
+The prior AP reference is 0.008243, and earlier Logistic Regression AP is 0.016882. None of the forest configurations surpasses that logistic AP. For the balanced pair, increasing maximum depth from six to twelve raises training AP from 0.093607 to 0.228160, while validation AP falls slightly from 0.010549 to 0.010312. This shows a larger in-sample versus validation gap, rather than evidence that complexity helped generalization. Mean fitted depths are 6.000, 6.000 and 11.995 respectively.
+
+These configurations use one fixed random seed. Their results do not establish a universally best depth or weighting scheme. Later limited tuning and suitable robustness checks will precede locked test evaluation and model selection. No new threshold was optimized in this topic.
+
+### Measured bootstrap and averaging example
+
+| Tree | Draws | Unique rows | Repeated draws beyond first occurrence | Omitted rows | Unique fraction | Repeat draws |
+|---|---|---|---|---|---|---|
+| 1 | 14362 | 9065 | 5297 | 5297 | 0.631180 | 151 |
+| 2 | 14362 | 9042 | 5320 | 5320 | 0.629578 | 123 |
+| 3 | 14362 | 9154 | 5208 | 5208 | 0.637376 | 129 |
+
+The theoretical expected unique fraction is 0.632133. Repeated draws and omitted rows have equal counts here because the total number of draws equals training size. All sampled positions refer to training customers. Root distinct-sample counts match the unique draws for every tree in the worked forest.
+
+There are 40 transformed features, with six considered at each split under square-root sampling. The selected highest-scored balanced depth-six validation customer has mean tree probability 0.7224489214, matching the pipeline output. The fraction of individual trees with probability at least 0.5 is 0.865. The two aggregation quantities are different. The model uses mean probabilities. This customer's actual repeat label is 0, a worked false positive that also warns against interpreting weighted scores as calibrated purchase probabilities.
+
+### Feature importance findings
+
+The leading impurity importances for the balanced depth-six forest are freight ratio 0.194616, log merchandise spend 0.153516, log average order value 0.152929 and mean known delivery days 0.121543. All transformed-feature importances sum to one. These values describe how training splits used the available inputs, subject to the correlation and split-cardinality limitations explained above. They do not establish a business cause or rescue the weak validation results.
+
+### Verification and topic completion
+
+Executed all 69 code cells sequentially from data loading through the supplementary appendix. There are 16 embedded figures and no error outputs. Visually inspected the two new figures covering validation comparisons and feature importance.
+
+Checked training medians and state categories for all three forest pipelines, with numeric scaling bypassed. Verified 200 trees per forest, configured depth bounds and minimum distinct leaf counts. Checked all 200 bootstrap samples in the worked forest for training-only positions, draw counts and root unique-row counts. Confirmed different first and second bootstrap samples, finite bounded validation probabilities, correct confusion totals and the manual 200-tree mean. Feature importance is finite, nonnegative and normalized, with one value per transformed coordinate.
+
+Static checks confirm the new model code does not access X_test or y_test. Final test performance remains reserved. This topic adds no dependencies. The Kaggle notebook continues to inform the overall classification workflow, while this controlled ensemble comparison and its worked learning exercises are our course-aligned implementation.
+
+**Suggested topic commit message** — `feat: compare Random Forest models with bagging viva examples`.
+
+**Files in the same contribution** — `olist_pipeline.ipynb`, `PIPELINE_NOTES.md`, `README.md`, and `SYLLABUS_ALIGNMENT.md`.
+
+**Commit status** — Current topic left uncommitted. The preceding recommendation and Bayes/SVM topics are present in commit `8ba2381`. No staging or commit action was performed by the assistant for this topic.
+
 ## Next notebook topic
 
-Add a small, controlled Random Forest comparison for repeat-purchase prediction. Explain bootstrap sampling, random feature subsets, tree diversity and overfitting. Compare the same validation metrics and error trade-offs, with training-only preprocessing and matching reference notes. Keep final test scoring reserved until the model comparison is locked.
+Complete compact Perceptron, ADALINE/MADALINE and forward/backpropagation learning demonstrations, then compare a small ANN on the existing retention task. Explain activations, loss, learning rate and training curves, with controlled complexity and matching reference notes. Keep final test scoring reserved. Customer segmentation follows the neural-learning topic.
