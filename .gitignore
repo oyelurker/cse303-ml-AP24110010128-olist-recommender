@@ -11,3 +11,4 @@ __pycache__/
 /artifacts/
 /.app_data/
 
+self.txt
