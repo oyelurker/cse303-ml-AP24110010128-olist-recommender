@@ -101,7 +101,7 @@ The retention pipeline's score applies at 30 days after a first observed item-be
 
 For the first course application, use Python, Streamlit, pandas/scikit-learn and SQLite. Streamlit session state holds immediate UI context; SQLite persists demo identities, events, carts, simulated orders and coupons across reruns. Package the notebook-selected artifacts separately from serving code. A larger frontend/API can be considered only if the UI requirement justifies it.
 
-The first implementation uses this stack. Eleven automated tests and the independent notebook-parity check pass. No additional ML family is introduced.
+The first implementation uses this stack. Fourteen automated tests and the independent notebook-parity check pass. No additional ML family is introduced.
 
 ## Bounded build sequence and acceptance
 

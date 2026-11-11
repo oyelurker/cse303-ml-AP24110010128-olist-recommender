@@ -21,7 +21,7 @@ If the sidebar is collapsed, open it using the upper-left arrow. Record your sho
 
 | Case | Actions | Expected result | Manual result |
 |---|---|---|---|
-| Fresh shopper | Expand Create a fresh shopper, enter a unique nickname such as Review A, click Create shopper | Correct selected identity, empty personal history/cart, popular initial suggestions and a welcome offer | Issue MT-001 |
+| Fresh shopper | Expand Create a fresh shopper, enter a unique nickname such as Review A, click Create shopper | Cleared nickname, visible success confirmation, selected identity, empty history/cart and welcome offer; repeated submission creates no extra profile | MT-001 fix: automated pass; manual retest pending |
 | Browse and filters | Search stationery, choose a category, change the price range, then clear the filters | Displayed catalog items match filters; an empty match shows a normal empty state | Partial — search verified |
 | View versus interest | View a product and go back. Save an interest in a category different from the original popular choices | Viewing adds Recently viewed. Saving interest refreshes content suggestions toward that category/price band. Neither action creates a completed order | Partial — interest verified |
 | Cart | Add an item, open Cart, use plus/minus, and remove it by reducing quantity to zero | Correct quantities, sidebar item count and subtotal; empty cart cannot submit an order | Pass |

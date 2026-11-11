@@ -80,4 +80,4 @@ The final fresh run passed every code cell. Figures were visually checked. Norma
 
 ## Implementation status
 
-The first implementation extracts preparation, historical feature building, frozen inference and honest recommendation helpers. Independent parity checks passed against notebook features, model probabilities and recommendation lists. The Streamlit interface adds persistent activity/cart/checkout, rule-based rewards, descriptive insights and a bounded assistant. APP_REFERENCE.md records setup, limitations and eleven passing tests. Weak repeat scores remain explicitly experimental.
+The first implementation extracts preparation, historical feature building, frozen inference and honest recommendation helpers. Independent parity checks passed against notebook features, model probabilities and recommendation lists. The Streamlit interface adds persistent activity/cart/checkout, rule-based rewards, descriptive insights and a bounded assistant. APP_REFERENCE.md records setup, limitations and fourteen passing tests. Weak repeat scores remain explicitly experimental.

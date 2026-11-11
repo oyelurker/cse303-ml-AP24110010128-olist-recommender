@@ -6,9 +6,45 @@ import unittest
 
 from streamlit.testing.v1 import AppTest
 from olist_shop.artifacts import load_artifacts
+from olist_shop.store import Store
 
 
 class AppFlowTests(unittest.TestCase):
+    def test_create_shopper_clears_confirms_and_blocks_duplicates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            old = os.environ.get("OLIST_DEMO_DB")
+            database = Path(directory)/"creation.sqlite"
+            os.environ["OLIST_DEMO_DB"] = str(database)
+            try:
+                at = AppTest.from_file(Path(__file__).resolve().parents[1]/"app.py", default_timeout=30).run()
+                store = Store(database)
+                initial_count = len(store.customers())
+                at.text_input(key="new_profile_name").set_value("Review shopper")
+                at.button(key="create_shopper_submit").click().run()
+                self.assertEqual(len(at.exception), 0)
+                selected = at.session_state["customer_picker"]
+                self.assertEqual(at.text_input(key="new_profile_name").value, "")
+                self.assertTrue(any("Created Review shopper" in message.value for message in at.success))
+                self.assertEqual(len(store.customers()), initial_count+1)
+                # The now-empty form must not create a generic shopper on another click.
+                at.button(key="create_shopper_submit").click().run()
+                self.assertEqual(len(at.exception), 0)
+                self.assertEqual(len(store.customers()), initial_count+1)
+                self.assertEqual(at.session_state["customer_picker"], selected)
+                at.text_input(key="new_profile_name").set_value("  review SHOPPER  ")
+                at.button(key="create_shopper_submit").click().run()
+                self.assertEqual(len(at.exception), 0)
+                self.assertEqual(len(store.customers()), initial_count+1)
+                self.assertEqual(at.session_state["customer_picker"], selected)
+                self.assertTrue(any("already exists" in message.value for message in at.info))
+                at.text_input(key="new_profile_name").set_value("Separate shopper")
+                at.button(key="create_shopper_submit").click().run()
+                self.assertEqual(len(at.exception), 0)
+                self.assertEqual(len(store.customers()), initial_count+2)
+            finally:
+                if old is None: os.environ.pop("OLIST_DEMO_DB", None)
+                else: os.environ["OLIST_DEMO_DB"] = old
+
     def test_shopping_checkout_history_and_assistant(self):
         with tempfile.TemporaryDirectory() as directory:
             old = os.environ.get("OLIST_DEMO_DB")

@@ -84,7 +84,7 @@ Use a fresh shopper or the prepared existing-customer personas: Frequent shopper
 
 The clock starts on 1 June 2018 and can advance by 1, 7, 30 or 61 days, up to 30 August. It is shared across local demo profiles. Historical catalog and purchase inputs remain frozen at their cutoff; new simulated activity is dated on this clock. Clock movement allows recency, expiry and return scenarios to be demonstrated without comparing 2018 orders with today's date.
 
-Create a fresh shopper for an independent scenario. The database persists across app restarts. The UI provides no real sign-in; identities are selectable demo profiles, not a production account/authentication system.
+Create a fresh shopper with a distinct nickname for an independent scenario. Success clears the form and confirms the selected shopper. An existing demo nickname, ignoring case and repeated spaces, switches to the existing shopper. Duplicate submissions are serialized by a SQLite write transaction. Existing duplicate records are preserved. The database persists across app restarts. The UI provides no real sign-in; identities are selectable demo profiles, not a production account/authentication system.
 
 ## Assistant and insights
 
@@ -120,6 +120,6 @@ Inside the Codex sandbox, Windows Streamlit's event-loop socket required an appr
 
 ## Verification result and remaining scope
 
-Eleven automated tests passed, including the actual Streamlit shopping/coupon/checkout/history/assistant flow and two concurrent duplicate checkout requests. The independent notebook-parity script also passed: all 71,105 feature rows, complete validation/test probability vectors and 202 top-ten recommendation lists match. The local browser preview was opened and visually inspected.
+Fourteen automated tests passed, including the actual Streamlit shopping/coupon/checkout/history/assistant flow and two concurrent duplicate checkout requests. The independent notebook-parity script also passed: all 71,105 feature rows, complete validation/test probability vectors and 202 top-ten recommendation lists match. The local browser preview was opened and visually inspected.
 
 The first local shopping flow is implemented and verified for this contribution. Real authentication, real payments, live inventory, real product photography/titles, cloud deployment and external LLM integration are separate product work. Same-order pair recommendations remain optional. The notebook is preserved as the research reference.

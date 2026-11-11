@@ -57,14 +57,24 @@ if "customer_picker" not in st.session_state:
 
 def customer_changed():
     st.session_state.pop("selected_product", None)
+    st.session_state.pop("profile_notice", None)
 
 
 def create_profile():
-    label = st.session_state.get("new_profile_name", "").strip()[:40] or "New shopper"
-    customer_id = "demo-" + uuid.uuid4().hex[:12]
-    store.ensure_customer(customer_id, label)
-    st.session_state.customer_picker = customer_id
+    label = st.session_state.get("new_profile_name", "").strip()
+    if not label:
+        # A queued second click after a successful submit must keep its confirmation.
+        if not st.session_state.get("profile_notice"):
+            st.session_state.profile_notice = ("warning", "Enter a shopper nickname first.")
+        return
+    profile = store.create_shopper(label)
+    st.session_state.customer_picker = profile["id"]
+    st.session_state.new_profile_name = ""
     st.session_state.pop("selected_product", None)
+    if profile["created"]:
+        st.session_state.profile_notice = ("success", f"Created {profile['label']}. You’re now shopping as this profile.")
+    else:
+        st.session_state.profile_notice = ("info", f"{profile['label']} already exists. Switched to that shopper; no new profile was created.")
 
 
 def choose_featured():
@@ -84,9 +94,12 @@ with st.sidebar:
                  key="customer_picker", on_change=customer_changed)
     st.caption("Demo identities only. No real account sign-in.")
     with st.expander("Create a fresh shopper"):
-        with st.form("new_profile"):
+        with st.form("new_profile", clear_on_submit=True):
             st.text_input("Shopper nickname", key="new_profile_name", max_chars=40)
-            st.form_submit_button("Create shopper", on_click=create_profile)
+            st.form_submit_button("Create shopper", key="create_shopper_submit", on_click=create_profile)
+        st.caption("Use a different nickname to create a separate shopper.")
+    if notice := st.session_state.get("profile_notice"):
+        getattr(st, notice[0])(notice[1])
     st.radio("Explore", ["Shop", "Cart", "Orders & rewards", "Insights", "Assistant"], key="navigation", label_visibility="collapsed")
     sidebar_cart = store.cart(st.session_state.customer_picker)
     st.caption(f"Cart · {sum(sidebar_cart.values())} items · {money(sum(int(engine.catalog.loc[item, 'price_cents'])*qty for item, qty in sidebar_cart.items()))}")

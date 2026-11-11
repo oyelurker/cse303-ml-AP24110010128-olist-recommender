@@ -74,6 +74,23 @@ class Store:
         with self.connection() as db:
             db.execute("INSERT OR IGNORE INTO customers VALUES(?,?)", (customer, label))
 
+    def create_shopper(self, nickname):
+        """Create once per normalized demo nickname, including concurrent submissions.
+
+        Existing duplicate profiles are preserved; reuse the earliest matching one.
+        Historical customer personas are outside this demo-name lookup.
+        """
+        label = " ".join(nickname.split())
+        if not label or len(label) > 40:
+            raise ValueError("Enter a shopper nickname between 1 and 40 characters.")
+        with self.connection(write=True) as db:
+            for row in db.execute("SELECT id,label FROM customers WHERE id LIKE 'demo-%' ORDER BY rowid"):
+                if " ".join(row["label"].split()).casefold() == label.casefold():
+                    return {"id": row["id"], "label": row["label"], "created": False}
+            customer = "demo-" + uuid.uuid4().hex[:12]
+            db.execute("INSERT INTO customers VALUES(?,?)", (customer, label))
+            return {"id": customer, "label": label, "created": True}
+
     def customers(self):
         with self.connection() as db:
             return [dict(row) for row in db.execute("SELECT * FROM customers ORDER BY rowid")]

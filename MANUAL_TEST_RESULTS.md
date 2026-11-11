@@ -2,7 +2,7 @@
 
 Evidence: the user's screenshots and reports during the guided review on 11 November 2026. The assistant interpreted those captures; it did not independently replay the manual actions. Demo dates advanced from 1 June to 8 June 2018. Displayed customer/order suffixes below are partial UI labels.
 
-No application code or demo data was changed while recording these results. Fixes remain deferred at the user's request.
+No application code or demo data was changed while recording the original results. Afterwards, the user authorized MT-001. Its fix now passes automated tests; a manual retest is pending. Original observed results below are retained.
 
 ## Observed results
 
@@ -35,7 +35,7 @@ No application code or demo data was changed while recording these results. Fixe
 
 ## Review conclusion
 
-The basic guided shopping, reward and assistant walkthrough is complete. The observed behavior above matched expectations except for the creation feedback/repeated-submission problem recorded as MT-001 in MANUAL_TEST_ISSUES.md. That issue remains open and unfixed. No new functional issue was reported in the remaining screenshots.
+The basic guided shopping, reward and assistant walkthrough is complete. The observed behavior above matched expectations except for the creation feedback/repeated-submission problem recorded as MT-001 in MANUAL_TEST_ISSUES.md. Its fix is now implemented with automated verification; user manual confirmation remains pending. No new functional issue was reported in the remaining screenshots.
 
 This does not establish exhaustive manual coverage, production readiness, predictive accuracy or real retention benefit. The previously completed eleven automated tests and notebook parity checks are separate evidence and were not rerun for this recording step.
 

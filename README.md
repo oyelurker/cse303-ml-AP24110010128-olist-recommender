@@ -26,7 +26,7 @@ The app includes personalized/interest/cart suggestions, product similarity, evi
 
 [Application reference and viva notes](APP_REFERENCE.md) explain the modules, event flow, rules and testing. [Application plan](APP_PLAN.md) records the intended screens and boundaries. Original CSVs remain immutable; local artifacts and SQLite activity are ignored by Git. Product labels, checkout and offers are clearly identified as demonstrations.
 
-Validation passed: **11 automated tests**, all **71,105 feature rows**, complete validation/test probability vectors, and **202 recommendation lists** checked against the notebook. Run checks with:
+Validation passed: **14 automated tests**, all **71,105 feature rows**, complete validation/test probability vectors, and **202 recommendation lists** checked against the notebook. Run checks with:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/verify_notebook_parity.py

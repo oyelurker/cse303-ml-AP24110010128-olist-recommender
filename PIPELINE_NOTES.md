@@ -2021,3 +2021,15 @@ The first local version supports the agreed core shopping/rewards/assistant loop
 **Suggested contribution commit** — `feat: add personalized shopping demo with rewards and assistant`.
 
 **Commit status** — Changes are ready for user review and remain uncommitted. Reference notes, application code, tests, setup files and the app plan belong in the same contribution.
+
+## Manual-review fix — MT-001 duplicate shopper creation
+
+The user authorized fixing MT-001 after logging it during manual testing. Previously each Create shopper submission generated a new ID, retained the nickname and lacked a success confirmation. The form now clears after success and confirms which shopper is active. Empty repeat clicks do not create generic profiles.
+
+Store.create_shopper normalizes whitespace and compares case-folded demo nicknames inside an immediate SQLite transaction. An existing nickname selects the earliest matching profile and displays a clear message. A different nickname creates a separate shopper. Historical personas are excluded from this lookup, and existing duplicate profiles and their histories are preserved.
+
+All 14 tests passed. Three new regression cases cover normalized-name reuse, simultaneous creation and legacy-duplicate preservation, and the actual Streamlit form clearing/confirmation/repeat-submission behavior. Existing checkout, reward, recommendation, history and assistant tests passed as well. Model code and the research notebook were unchanged. Tests used temporary databases; the user's existing demo records were not merged or deleted.
+
+MANUAL_TEST_ISSUES.md records the fix; manual confirmation is pending. Refresh the app and test a new distinct nickname, followed by an empty repeat click and same-name re-entry. The two old Test User 1 entries remain intentionally.
+
+**Suggested commit** — `fix: prevent accidental duplicate shopper creation`.

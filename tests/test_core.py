@@ -99,6 +99,29 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(results[0]["id"], results[1]["id"])
         self.assertEqual(len(self.store.orders("a")), 1)
 
+    def test_create_shopper_normalizes_and_reuses_name(self):
+        first = self.store.create_shopper("  Test   User 1  ")
+        second = self.store.create_shopper("test user 1")
+        self.assertTrue(first["created"])
+        self.assertFalse(second["created"])
+        self.assertEqual(first["id"], second["id"])
+        self.assertEqual(first["label"], "Test User 1")
+        with self.assertRaises(ValueError):
+            self.store.create_shopper("   ")
+        self.assertEqual(len(self.store.customers()), 3)
+
+    def test_concurrent_shopper_creation_and_legacy_profiles(self):
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            profiles = list(executor.map(lambda _: self.store.create_shopper("Review shopper"), range(2)))
+        self.assertEqual(profiles[0]["id"], profiles[1]["id"])
+        self.assertEqual(sum(profile["created"] for profile in profiles), 1)
+        self.store.ensure_customer("demo-old-first", "Legacy user")
+        self.store.ensure_customer("demo-old-second", "Legacy user")
+        reused = self.store.create_shopper("LEGACY USER")
+        self.assertEqual(reused["id"], "demo-old-first")
+        self.assertFalse(reused["created"])
+        self.assertEqual(len(self.store.customers()), 5)
+
 
 if __name__ == "__main__":
     unittest.main()
