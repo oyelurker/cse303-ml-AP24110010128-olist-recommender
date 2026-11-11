@@ -2,7 +2,7 @@
 
 Evidence: the user's screenshots and reports during the guided review on 11 November 2026. The assistant interpreted those captures; it did not independently replay the manual actions. Demo dates advanced from 1 June to 8 June 2018. Displayed customer/order suffixes below are partial UI labels.
 
-No application code or demo data was changed while recording the original results. Afterwards, the user authorized MT-001. Its fix now passes automated tests; a manual retest is pending. Original observed results below are retained.
+No application code or demo data was changed while recording the original results. Afterwards, the user authorized MT-001. Its fix passes automated tests and the follow-up UI checks documented below. Original observed results are retained as historical evidence.
 
 ## Observed results
 
@@ -35,19 +35,25 @@ No application code or demo data was changed while recording the original result
 
 ## Review conclusion
 
-The basic guided shopping, reward and assistant walkthrough is complete. The observed behavior above matched expectations except for the creation feedback/repeated-submission problem recorded as MT-001 in MANUAL_TEST_ISSUES.md. Its fix is now implemented with automated verification; user manual confirmation remains pending. No new functional issue was reported in the remaining screenshots.
+The basic guided shopping, reward and assistant walkthrough is complete. The original creation problem MT-001 was fixed and verified by automated tests and follow-up UI checks. No new functional issue was found in the exercised flows. Remaining boundary coverage is listed below.
 
 This does not establish exhaustive manual coverage, production readiness, predictive accuracy or real retention benefit. The previously completed eleven automated tests and notebook parity checks are separate evidence and were not rerun for this recording step.
 
+## Follow-up UI verification
+
+The user's later screenshots confirmed the category dropdown (671 stationery products), Over R$150 filter (129 matches, visible prices above the threshold), normal zero-result search, Recently viewed for 99A478, insufficient-evidence fallback for Perfumery 00066F, unsupported weather-question fallback, and existing-customer historical score 0.0347 at snapshot 2018-04-25 with the experimental warning. These are displayed-behavior passes, not an independent model-accuracy audit.
+
+The parent assistant then operated the app UI directly. The delegated agent could not access the parent browser session and completed no tests. In the existing manual-review database, Loyalty Test already had order 90A90428 on 8 June. The assistant completed order 0A1DCD51 on that date and observed no loyalty offer. After advancing one day, order 75F2099E on 9 June earned the 7% offer for a subsequent purchase. A R$149 cart was below its R$150 minimum; quantity two produced subtotal R$298, saving R$20.86 and total R$277.14. Order 0588D585 recorded that redemption, cleared the cart and removed the immediately available loyalty offer. These checks passed.
+
+An explicitly empty shopper submission showed Enter a shopper nickname first and retained Loyalty Test. Combined with the user's successful unique-name creation and same-name reuse screenshots, MT-001's visible creation and duplicate-name safeguards have been verified. The automated suite separately tests the rapid repeated-click path.
+
+The shared clock is now 9 June 2018. Existing records were preserved; three additional simulated orders were added to Loyalty Test. Evidence: manual-loyalty-verification.png. No application code changed in this follow-up. Fourteen automated tests previously passed; they and notebook parity were not rerun for these documentation-only changes.
+
 ## Additional cases not established by this walkthrough
 
-- Explicit category-dropdown and exact price-boundary/empty-search tests.
-- Recently viewed behavior independently of saved interests.
-- Insufficient shared-buyer fallback on a deliberately chosen sparse product.
-- Earning loyalty through three new completed orders across dates.
+- Exact price-boundary tests (category selection, a price range and empty search passed).
 - Requalifying exactly at 30-day or 60-day redemption cooldown boundaries.
 - Rejecting the original expired coupon token directly; visible replacement alone does not prove this.
 - Quantity maximum, repeated concurrent checkout and wrong-owner coupon attempts through manual interaction.
-- Valid historical repeat-score display on an existing customer and unsupported assistant requests.
 
 Some of these boundaries are covered by existing automated tests. They are not relabeled as manual passes here. New issues should be added to MANUAL_TEST_ISSUES.md without implementing fixes until requested.

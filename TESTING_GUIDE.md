@@ -21,7 +21,7 @@ If the sidebar is collapsed, open it using the upper-left arrow. Record your sho
 
 | Case | Actions | Expected result | Manual result |
 |---|---|---|---|
-| Fresh shopper | Expand Create a fresh shopper, enter a unique nickname such as Review A, click Create shopper | Cleared nickname, visible success confirmation, selected identity, empty history/cart and welcome offer; repeated submission creates no extra profile | MT-001 fix: automated pass; manual retest pending |
+| Fresh shopper | Expand Create a fresh shopper, enter a unique nickname such as Review A, click Create shopper | Cleared nickname, visible success confirmation, selected identity, empty history/cart and welcome offer; repeated submission creates no extra profile | Pass — creation, existing-name reuse and empty submission; rapid repeat covered automatically |
 | Browse and filters | Search stationery, choose a category, change the price range, then clear the filters | Displayed catalog items match filters; an empty match shows a normal empty state | Partial — search verified |
 | View versus interest | View a product and go back. Save an interest in a category different from the original popular choices | Viewing adds Recently viewed. Saving interest refreshes content suggestions toward that category/price band. Neither action creates a completed order | Partial — interest verified |
 | Cart | Add an item, open Cart, use plus/minus, and remove it by reducing quantity to zero | Correct quantities, sidebar item count and subtotal; empty cart cannot submit an order | Pass |
@@ -29,7 +29,7 @@ If the sidebar is collapsed, open it using the upper-left arrow. Record your sho
 | Welcome redemption | Tick Apply this demo offer and place one simulated order | 5% saving capped at R$20; total equals subtotal minus saving; one confirmation, cleared cart and one saved order | Pass |
 | Purchase-aware shelves | Open Orders & rewards, then Shop | Completed product appears in Buy again and is excluded from main discovery; the used welcome offer cannot be redeemed again | Pass |
 | Co-purchase evidence | Click Try shared-buyer example in the sidebar | Product page includes Other shoppers also bought with at least two historical shoppers per displayed pair; no compatibility or same-basket claim | Pass — displayed evidence |
-| Sparse evidence | Open another product with insufficient shared-buyer evidence | Explicit insufficient-evidence message and separately labeled popular alternatives, rather than invented co-purchase claims | Not run |
+| Sparse evidence | Open another product with insufficient shared-buyer evidence | Explicit insufficient-evidence message and separately labeled popular alternatives, rather than invented co-purchase claims | Pass — Perfumery 00066F |
 | Existing personas | Select Frequent shopper, then Returning after a break | On a fresh June 2018 review clock, qualifying personas show 7% loyalty and 8% welcome-back rewards respectively, with their conditions | Pass — offer display |
 | Insights | Review a fresh shopper and an existing shopper | Empty history has no RFM assignment; history can produce a descriptive segment. Repeat score appears only where its original dated snapshot exists, with the experimental warning | Pass — new-shopper values |
 | Assistant | Ask Recommend products, Why this suggestion, What offer can I use, and What did I buy before | Answers refer to selected customer and agree with page data; absent history/offers/scores are stated | Pass — tested requests |
